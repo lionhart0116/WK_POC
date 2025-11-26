@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 OCR 表格提取多模式測試工具</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .test-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            resize: vertical;
+            margin-bottom: 10px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-test {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-test:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-clear {
+            background: #f5f5f5;
+            color: #666;
+        }
+        
+        .btn-clear:hover {
+            background: #e0e0e0;
+        }
+        
+        .result {
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .result-item {
+            background: white;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        
+        .result-item.success {
+            border-left-color: #4caf50;
+        }
+        
+        .result-item.warning {
+            border-left-color: #ff9800;
+        }
+        
+        .result-item.error {
+            border-left-color: #f44336;
+        }
+        
+        .result-header {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .result-content {
+            color: #666;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        
+        .mode-indicator {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .mode-indicator.modeA {
+            background: #c8e6c9;
+            color: #1b5e20;
+        }
+        
+        .mode-indicator.modeB {
+            background: #fff9c4;
+            color: #f57f17;
+        }
+        
+        .mode-indicator.modeC {
+            background: #ffccbc;
+            color: #d84315;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .stat-box {
+            background: #f5f5f5;
+            padding: 12px;
+            border-radius: 4px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .tab {
+            padding: 10px 16px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            color: #999;
+            font-weight: 600;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+        
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 OCR 表格提取多模式測試工具</h1>
+            <p>驗證 v6 的三層容錯機制：標準模式 → 備用模式 → 簡化模式</p>
+        </div>
+        
+        <!-- 測試 1: 標準發票 (模式 A) -->
+        <div class="test-section">
+            <div class="test-title">
+                <span>📋 測試 1: 標準英文發票</span>
+                <span class="badge">模式 A</span>
+            </div>
+            
+            <textarea id="input1" placeholder="貼上 fullText 內容...">Quantity Unit Price Amount(USD) PO.NO
+1 9720 PCS
+Item No. WL6WR1510
+Description
+WLGWR1510-DAIKIN
+3.2208
+31306.18
+750190684
+2 2124 PCS
+WCT2GM2511
+WCT2GM2511-TPV
+2.3461
+4983.12 750189359
+3 2676 PCS
+WCT2GM2511
+WCT2GM2511-TPV
+2.3461
+6278.16
+750190684
+TOTAL 212825.81</textarea>
+            
+            <div class="button-group">
+                <button class="btn-test" onclick="testMode('standard', 'input1', 'result1')">🚀 測試標準模式</button>
+                <button class="btn-clear" onclick="clearTest('input1', 'result1')">清除</button>
+            </div>
+            
+            <div id="result1" class="result" style="display:none;"></div>
+        </div>
+        
+        <!-- 測試 2: 中文發票 (模式 B) -->
+        <div class="test-section">
+            <div class="test-title">
+                <span>📋 測試 2: 中文替代格式發票</span>
+                <span class="badge">模式 B</span>
+            </div>
+            
+            <textarea id="input2" placeholder="貼上 fullText 內容...">品名                 数量   單價   金額      PO
+1 主板模組           100    500    50000    750180001
+型號: MB-2021-A
+描述: 高端主板組件
+2 驅動程式           50     200    10000    750180002
+型號: DV-2021-B
+軟體包
+合计: 60000</textarea>
+            
+            <div class="button-group">
+                <button class="btn-test" onclick="testMode('alternative', 'input2', 'result2')">🚀 測試備用模式</button>
+                <button class="btn-clear" onclick="clearTest('input2', 'result2')">清除</button>
+            </div>
+            
+            <div id="result2" class="result" style="display:none;"></div>
+        </div>
+        
+        <!-- 測試 3: 自訂輸入 -->
+        <div class="test-section">
+            <div class="test-title">
+                <span>🔧 測試 3: 自訂輸入 (測試您的發票)</span>
+                <span class="badge">全模式</span>
+            </div>
+            
+            <textarea id="input3" placeholder="貼上您的發票 fullText 內容..."></textarea>
+            
+            <div class="button-group">
+                <button class="btn-test" onclick="testMode('auto', 'input3', 'result3')">🚀 自動檢測模式</button>
+                <button class="btn-clear" onclick="clearTest('input3', 'result3')">清除</button>
+            </div>
+            
+            <div id="result3" class="result" style="display:none;"></div>
+        </div>
+    </div>
+    
+    <script>
+        // 複製 v6 的三個提取函數到測試環境
+        
+        function extractInvoiceTableItemsStandard(fullText) {
+            console.log('[TEST] 執行標準模式...');
+            const items = [];
+            const tableStart = fullText.toUpperCase().indexOf('QUANTITY');
+            const tableEnd = fullText.toUpperCase().indexOf('TOTAL');
+            
+            if (tableStart === -1 || tableEnd === -1) {
+                console.log('[TEST] 標準模式失敗: tableStart=' + tableStart + ', tableEnd=' + tableEnd);
+                return null;
+            }
+            
+            const tableContent = fullText.substring(tableStart, tableEnd);
+            const tableLines = tableContent.split('\n').filter(l => l.trim().length > 0);
+            
+            let i = 1;
+            while (i < tableLines.length) {
+                const line = tableLines[i].trim();
+                const lineNoMatch = line.match(/^(\d{1,2})\s+(.+)/);
+                if (!lineNoMatch) {
+                    i++;
+                    continue;
+                }
+                
+                const lineNo = lineNoMatch[1];
+                const lineRest = lineNoMatch[2];
+                
+                const item = {
+                    lineNo,
+                    quantity: null,
+                    unit: null,
+                    itemNo: null,
+                    description: null,
+                    unitPrice: null,
+                    amount: null,
+                    poNo: null
+                };
+                
+                const qtyMatch = lineRest.match(/(\d+)\s+(PCS|EA|BOX|CASE|KG|M|PACK|UNITS?|SET|LOT|ROLL)/i);
+                if (qtyMatch) {
+                    item.quantity = parseInt(qtyMatch[1]);
+                    item.unit = qtyMatch[2].toUpperCase();
+                }
+                
+                let j = i + 1;
+                const itemLines = [];
+                
+                while (j < tableLines.length) {
+                    const nextLine = tableLines[j].trim();
+                    if (/^\d{1,2}\s+/.test(nextLine)) {
+                        break;
+                    }
+                    
+                    const upperLine = nextLine.toUpperCase();
+                    if (/^(ITEM NO|DESCRIPTION|UNIT PRICE|AMOUNT|PO\.?NO|QTY|QUANTITY)/.test(upperLine)) {
+                        j++;
+                        continue;
+                    }
+                    
+                    itemLines.push(nextLine);
+                    j++;
+                }
+                
+                let textFieldCount = 0;
+                for (const iline of itemLines) {
+                    const trimmed = iline.trim();
+                    const isNumeric = /^[\d,\.]+$/.test(trimmed);
+                    
+                    if (isNumeric) {
+                        const num = parseFloat(trimmed.replace(/,/g, ''));
+                        if (/^\d{9}$/.test(trimmed.replace(/,/g, ''))) {
+                            item.poNo = trimmed.replace(/,/g, '');
+                        } else if (num < 1000 && num > 0.1 && !item.unitPrice) {
+                            item.unitPrice = num;
+                        } else if (num >= 1000 && num < 1000000 && !item.amount) {
+                            item.amount = num;
+                        }
+                    } else if (trimmed.match(/^[A-Z0-9]/i)) {
+                        if (textFieldCount === 0) {
+                            item.itemNo = trimmed;
+                            textFieldCount++;
+                        } else if (textFieldCount === 1 && !item.description) {
+                            item.description = trimmed;
+                            textFieldCount++;
+                        }
+                    }
+                }
+                
+                if (!item.amount && item.quantity && item.unitPrice) {
+                    item.amount = parseFloat((item.quantity * item.unitPrice).toFixed(2));
+                }
+                
+                items.push(item);
+                i = j;
+            }
+            
+            console.log('[TEST] 標準模式成功提取 ' + items.length + ' 項');
+            return items.length > 0 ? items : null;
+        }
+        
+        function extractInvoiceTableItemsAlternative(fullText) {
+            console.log('[TEST] 執行備用模式...');
+            const upperText = fullText.toUpperCase();
+            const items = [];
+            
+            const startMarkers = ['QUANTITY', '数量', '品名', 'ITEMS', 'SKU', 'PART NUMBER'];
+            const endMarkers = ['TOTAL', '合计', '小计', 'SUBTOTAL', 'GRAND TOTAL', 'AMOUNT DUE'];
+            
+            let tableStart = -1;
+            let tableEnd = -1;
+            
+            for (const marker of startMarkers) {
+                tableStart = upperText.indexOf(marker.toUpperCase());
+                if (tableStart !== -1) {
+                    console.log('[TEST] 找到起始標記: ' + marker);
+                    break;
+                }
+            }
+            
+            for (const marker of endMarkers) {
+                tableEnd = upperText.indexOf(marker.toUpperCase());
+                if (tableEnd !== -1) {
+                    console.log('[TEST] 找到結束標記: ' + marker);
+                    break;
+                }
+            }
+            
+            if (tableStart === -1 || tableEnd === -1) {
+                console.log('[TEST] 備用模式失敗: tableStart=' + tableStart + ', tableEnd=' + tableEnd);
+                return null;
+            }
+            
+            const tableContent = fullText.substring(tableStart, tableEnd);
+            const tableLines = tableContent.split('\n').filter(l => l.trim().length > 0);
+            
+            let i = 1;
+            while (i < tableLines.length) {
+                const line = tableLines[i].trim();
+                const lineNoMatch = line.match(/^([0-9A-Z]{1,3})\s+(.+)/);
+                if (!lineNoMatch) {
+                    i++;
+                    continue;
+                }
+                
+                const lineNo = lineNoMatch[1];
+                const lineRest = lineNoMatch[2];
+                
+                const item = {
+                    lineNo,
+                    quantity: null,
+                    unit: null,
+                    itemNo: null,
+                    description: null,
+                    unitPrice: null,
+                    amount: null,
+                    poNo: null
+                };
+                
+                const qtyMatch = lineRest.match(/(\d+)\s+(PCS|EA|BOX|CASE|KG|M|PACK|UNITS?|SET|LOT|ROLL|件|套|卷|張)/i);
+                if (qtyMatch) {
+                    item.quantity = parseInt(qtyMatch[1]);
+                    item.unit = qtyMatch[2];
+                }
+                
+                let j = i + 1;
+                const itemLines = [];
+                
+                while (j < tableLines.length && !/^([0-9A-Z]{1,3})\s+/.test(tableLines[j].trim())) {
+                    itemLines.push(tableLines[j].trim());
+                    j++;
+                }
+                
+                let textFieldCount = 0;
+                for (const iline of itemLines) {
+                    const trimmed = iline.trim();
+                    const isNumeric = /^[\d,\.]+$/.test(trimmed);
+                    
+                    if (isNumeric) {
+                        const num = parseFloat(trimmed.replace(/,/g, ''));
+                        if (num < 1000 && num > 0.1 && !item.unitPrice) {
+                            item.unitPrice = num;
+                        } else if (num >= 1000 && num < 10000000 && !item.amount) {
+                            item.amount = num;
+                        }
+                    } else if (trimmed.length > 0) {
+                        if (textFieldCount === 0) {
+                            item.itemNo = trimmed;
+                            textFieldCount++;
+                        } else if (textFieldCount === 1) {
+                            item.description = trimmed;
+                            textFieldCount++;
+                        }
+                    }
+                }
+                
+                if (!item.amount && item.quantity && item.unitPrice) {
+                    item.amount = parseFloat((item.quantity * item.unitPrice).toFixed(2));
+                }
+                
+                items.push(item);
+                i = j;
+            }
+            
+            console.log('[TEST] 備用模式成功提取 ' + items.length + ' 項');
+            return items.length > 0 ? items : null;
+        }
+        
+        function testMode(mode, inputId, resultId) {
+            const input = document.getElementById(inputId);
+            const result = document.getElementById(resultId);
+            const fullText = input.value.trim();
+            
+            if (!fullText) {
+                showResult(resultId, 'error', '❌ 錯誤', '請輸入 fullText 內容');
+                return;
+            }
+            
+            let items = null;
+            let detectedMode = '未知';
+            
+            if (mode === 'standard') {
+                items = extractInvoiceTableItemsStandard(fullText);
+                detectedMode = '標準模式';
+            } else if (mode === 'alternative') {
+                items = extractInvoiceTableItemsAlternative(fullText);
+                detectedMode = '備用模式';
+            } else if (mode === 'auto') {
+                // 自動測試三個模式
+                items = extractInvoiceTableItemsStandard(fullText);
+                if (items) {
+                    detectedMode = '✅ 標準模式成功';
+                } else {
+                    items = extractInvoiceTableItemsAlternative(fullText);
+                    if (items) {
+                        detectedMode = '✅ 備用模式成功';
+                    } else {
+                        detectedMode = '❌ 所有模式都失敗';
+                    }
+                }
+            }
+            
+            result.style.display = 'block';
+            
+            if (!items) {
+                showResult(resultId, 'error', '❌ 提取失敗', detectedMode);
+                return;
+            }
+            
+            // 顯示結果
+            let html = `<div class="result-item success">
+                <div class="result-header">✅ 提取成功 (${detectedMode})</div>
+                <div class="result-content">共提取 ${items.length} 項</div>
+            </div>`;
+            
+            items.forEach((item, idx) => {
+                html += `<div class="result-item">
+                    <div class="result-header">📌 Item #${item.lineNo}</div>
+                    <div class="result-content">
+Qty: ${item.quantity} ${item.unit}
+ItemNo: ${item.itemNo || '(空)'}
+Description: ${item.description || '(空)'}
+UnitPrice: $${item.unitPrice || '(空)'}
+Amount: $${item.amount || '(空)'}
+PO: ${item.poNo || '(空)'}
+                    </div>
+                </div>`;
+            });
+            
+            result.innerHTML = html;
+        }
+        
+        function showResult(resultId, type, header, content) {
+            const result = document.getElementById(resultId);
+            result.style.display = 'block';
+            result.innerHTML = `<div class="result-item ${type}">
+                <div class="result-header">${header}</div>
+                <div class="result-content">${content}</div>
+            </div>`;
+        }
+        
+        function clearTest(inputId, resultId) {
+            document.getElementById(inputId).value = '';
+            document.getElementById(resultId).style.display = 'none';
+            document.getElementById(resultId).innerHTML = '';
+        }
+    </script>
+</body>
+</html>

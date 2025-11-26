@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>選擇匯出格式</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        /* ================= 全域樣式 ================= */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1000px; margin: 0 auto; }
+
+        /* Header */
+        .page-header { text-align: center; color: white; margin-bottom: 40px; }
+        .page-header h1 { font-size: 36px; margin-bottom: 10px; }
+        
+        /* 步驟指示器 */
+        .steps-indicator { display: flex; justify-content: center; align-items: center; margin-bottom: 40px; gap: 20px; }
+        .step { display: flex; align-items: center; gap: 10px; }
+        .step-circle {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-weight: bold;
+        }
+        .step.completed .step-circle { background: #4caf50; color: white; }
+        .step.active .step-circle { background: white; color: #667eea; transform: scale(1.1); }
+        .step-label { color: white; font-size: 14px; opacity: 0.7; }
+        .step.active .step-label { opacity: 1; font-weight: 600; }
+        .step-arrow { color: white; opacity: 0.5; font-size: 20px; }
+
+        /* 卡片樣式 */
+        .main-card {
+            background: white; border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); padding: 40px;
+            min-height: 500px; animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 摘要區塊 */
+        .data-summary {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-left: 4px solid #2196f3; padding: 25px; border-radius: 12px; margin-bottom: 40px;
+        }
+        .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+        .summary-item { background: white; padding: 15px; border-radius: 8px; text-align: center; }
+        .summary-label { font-size: 12px; color: #666; margin-bottom: 5px; text-transform: uppercase; font-weight: 600; }
+        .summary-value { font-size: 16px; font-weight: 600; color: #333; }
+        .summary-value.highlight { color: #2196f3; font-size: 18px; }
+
+        /* 格式選擇區 */
+        .format-selection-area { margin-bottom: 40px; }
+        .format-group-title { font-size: 16px; color: #666; margin-bottom: 15px; border-left: 3px solid #667eea; padding-left: 10px; }
+        
+        .format-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; }
+        
+        .format-card {
+            background: white; border: 2px solid #e0e0e0;
+            border-radius: 12px; padding: 20px; cursor: pointer;
+            transition: all 0.2s ease; text-align: center; position: relative;
+        }
+        .format-card:hover { border-color: #667eea; transform: translateY(-3px); }
+        .format-card.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea; color: white;
+        }
+        .format-icon { font-size: 32px; margin-bottom: 10px; }
+        .format-name { font-weight: bold; margin-bottom: 5px; }
+        .format-desc { font-size: 12px; opacity: 0.8; }
+        .check-mark { position: absolute; top: 10px; right: 10px; display: none; }
+        .format-card.selected .check-mark { display: block; }
+
+        /* 按鈕 */
+        .action-buttons { display: flex; gap: 15px; justify-content: center; margin-top: 30px; }
+        .btn { padding: 14px 32px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: 600; transition: 0.3s; }
+        .btn-secondary { background: #f0f0f0; color: #333; }
+        .btn-secondary:hover { background: #e0e0e0; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; background: #ccc; }
+
+        @media (max-width: 768px) {
+            .summary-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="page-header">
+            <h1>🤖 智慧文件處理系統</h1>
+            <p>Powered by Copilot Studio & Azure OpenAI</p>
+        </div>
+
+        <div class="steps-indicator">
+            <div class="step completed">
+                <div class="step-circle">✓</div>
+                <div class="step-label">選擇類型</div>
+            </div>
+            <div class="step-arrow">→</div>
+            <div class="step completed">
+                <div class="step-circle">✓</div>
+                <div class="step-label">確認 OCR</div>
+            </div>
+            <div class="step-arrow">→</div>
+            <div class="step active">
+                <div class="step-circle">3</div>
+                <div class="step-label">匯出格式</div>
+            </div>
+        </div>
+
+        <div class="main-card">
+            <h2 style="text-align: center; margin-bottom: 20px;">📋 資料摘要與匯出</h2>
+
+            <div class="data-summary">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px; color:#1976d2;">
+                    <span style="font-size:24px;">📊</span>
+                    <h4 style="font-size:18px;">資料確認</h4>
+                </div>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <div class="summary-label">文件編號</div>
+                        <div class="summary-value" id="sum_invoice_no">--</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-label">文件日期</div>
+                        <div class="summary-value" id="sum_invoice_date">--</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-label">賣方/供應商</div>
+                        <div class="summary-value" id="sum_seller_id">--</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-label">總金額</div>
+                        <div class="summary-value highlight" id="sum_grand_total">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="format-selection-area">
+                <h3 class="format-group-title" id="formatTitle">請選擇目標系統格式：</h3>
+                <div class="format-options" id="formatContainer">
+                    </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-secondary" onclick="goBackToEdit()">← 返回修改</button>
+                <button class="btn btn-primary" id="downloadBtn" onclick="generateAndDownload()" disabled>⬇️ 產生並下載檔案</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === 全局變數 ===
+        let currentData = {};
+        let selectedFormat = null;
+        let docType = 'invoice'; // 預設值
+
+        // === 格式設定定義 ===
+        // 包含所有格式的詳細設定 (Header, 檔名規則, Mapping)
+        const allFormats = {
+            '406': {
+                id: '406', name: '406INF 格式', desc: '406INF.xlsx (Excel)', icon: '📊', ext: 'xlsx',
+                headers: [
+                    "Batch_Name", "Vendor Num", "Vendor Site Code", "Type", "PO No", 
+                    "PO Line Num", "Release", "Shipment Num", "Vendor Item", "Item No", 
+                    "Qty", "Ship-To", "Subinventory", "Release Price", "INV NO", 
+                    "Invoice_Date[ ]", "COO[ ]", "Book_Cost[ ]", "Real_Cost[ ]", "Lot_no[ ]", 
+                    "Declarations_price[ ]", "保固期 [ ]", "check_sum[ ]", "燒錄對象 [ ]", 
+                    "Ship_to_code[ ]", "SO[ ]", "DO[ ]", "Reason[ ]", "舊收料單號 [ ]", 
+                    "MAWB[ ]", "HAWB[ ]", "到貨通知[ ]", "Special管制料", "必細驗"
+                ],
+                // 資料對應邏輯
+                mapFn: (data) => ({
+                    "Batch_Name": "OCR_BATCH_" + new Date().toISOString().slice(0,10).replace(/-/g,''), // 自動產生批號
+                    "Vendor Num": data.seller_id || "",     // 對應：賣方統編
+                    "Vendor Site Code": "TW_SITE",          // 範例：供應商地點 (需視系統設定)
+                    "Type": "STANDARD",                     // 範例：標準類型
+                    "PO No": "",                            // OCR 未包含 PO，留空待填
+                    "PO Line Num": "1",                     // 預設第一行
+                    "Release": "",
+                    "Shipment Num": data.invoice_no,        // 常見做法：用發票號當出貨單號
+                    "Vendor Item": "",
+                    "Item No": data.item_name || "MISC",    // 對應：品名
+                    "Qty": data.quantity || "1",            // 對應：數量
+                    "Ship-To": data.buyer_name || "",       // 對應：買方名稱
+                    "Subinventory": "Stores",               // 範例：子庫存
+                    "Release Price": data.grand_total || "",// 對應：金額 (或用單價)
+                    "INV NO": data.invoice_no,              // 對應：發票號碼
+                    "Invoice_Date[ ]": data.invoice_date,   // 對應：發票日期
+                    "COO[ ]": "",
+                    "Book_Cost[ ]": "",
+                    "Real_Cost[ ]": "",
+                    "Lot_no[ ]": "",
+                    "Declarations_price[ ]": "",
+                    "保固期 [ ]": "",
+                    "check_sum[ ]": "",
+                    "燒錄對象 [ ]": "",
+                    "Ship_to_code[ ]": "",
+                    "SO[ ]": "",
+                    "DO[ ]": "",
+                    "Reason[ ]": "",
+                    "舊收料單號 [ ]": "",
+                    "MAWB[ ]": "",
+                    "HAWB[ ]": "",
+                    "到貨通知[ ]": "",
+                    "Special管制料": "N",
+                    "必細驗": "N"
+                })
+            },
+            '407': {
+                id: '407', name: '407INF 格式', desc: '407INF.csv (CSV)', icon: '📋', ext: 'csv',
+                headers: [
+                    "Vendor_doc_num", "PO_NUM", "PO_LINE_NUM", "Item", 
+                    "Agent Name", "Quantity", "Price", "Promised Date", 
+                    "Destin_Num", "Ship_to", "Deliver_to", "Subinventory"
+                ],
+                // 資料對應邏輯
+                mapFn: (data) => ({
+                    "Vendor_doc_num": data.invoice_no || "",    // 對應：發票號碼
+                    "PO_NUM": "",                               // OCR 未提供，留空
+                    "PO_LINE_NUM": "1",                         // 預設第一行
+                    "Item": data.item_name || "",               // 對應：品名
+                    "Agent Name": data.seller_name || "",       // 對應：賣方/供應商名稱
+                    "Quantity": data.quantity || "1",           // 對應：數量
+                    "Price": data.unit_price || data.grand_total || "", // 對應：單價或總價
+                    "Promised Date": "",
+                    "Destin_Num": "",
+                    "Ship_to": data.buyer_address || "",        // 對應：買方地址 (Ship_to)
+                    "Deliver_to": "",
+                    "Subinventory": "STORES"                    // 範例值
+                })
+            },
+            'CO': {
+                id: 'CO', name: 'CO 採購單', desc: 'CO.csv (採購系統)', icon: '📦', ext: 'csv',
+                headers: [
+                    "Co_Number", "Cust_Po_Number", "Cust_Po_Line_num", "客戶料號", 
+                    "原廠料號", "Co_Qty", "上傳者", "Unit_Selling_Price", 
+                    "Cust_Request_Date", "DPA_NO", "Cust_Order_Date", "N_Ver", 
+                    "N_原始數量", "End_Customer", "N_CSD_Date"
+                ],
+                // 資料對應邏輯
+                mapFn: (data) => ({
+                    // === 基本對應 ===
+                    "Co_Number": "CO-" + (data.invoice_no || 'TBD'), // 採用發票號碼作為 CO 號碼的一部分
+                    "Cust_Po_Number": data.invoice_no || "",          // 暫以發票號碼視為 PO 號碼
+                    "Cust_Po_Line_num": "1",
+                    
+                    // === 品項對應 ===
+                    "客戶料號": data.item_name || "",            // 採用品名作為客戶料號
+                    "原廠料號": "",                              // OCR 未提供，留空
+                    "Co_Qty": data.quantity || "1",             // 對應：數量
+                    "Unit_Selling_Price": data.unit_price || "",// 對應：單價
+                    
+                    // === 資訊與日期對應 ===
+                    "上傳者": "OCR_USER",
+                    "Cust_Request_Date": data.invoice_date || "",// 採用發票日期作為客戶要求日
+                    "DPA_NO": "",
+                    "Cust_Order_Date": data.invoice_date || "",  // 採用發票日期作為訂單日
+                    "N_Ver": "A",                                // 預設版本
+                    "N_原始數量": data.quantity || "1",             // 與 Co_Qty 相同
+                    "End_Customer": data.buyer_name || "",       // 採用買方名稱作為終端客戶
+                    "N_CSD_Date": ""
+                })
+            },
+            'SO': {
+                id: 'SO', name: 'SO 訂單', desc: 'SO.csv (業務系統)', icon: '🛒', ext: 'csv',
+                headers: [
+                    "UPLOAD NO", "LINE", "CUSTOMER NO.", "PO NO.", "ORDER TYPE", 
+                    "DATE", "SHIP TO", "SHIP TO ATTN", "BILL TO", "CURRENCYY", 
+                    "PRICE BOOK", "SALES", "PAYMENT TERM", "WH", "LINE SET", 
+                    "SHIPPING METHOD", "FOB", "SHIPPING INSTRUCTIONS", "CONVERSION TYPE"
+                ],
+                // 資料對應邏輯
+                mapFn: (data) => ({
+                    // === 核心與識別資訊 ===
+                    "UPLOAD NO": "OCR_SO_UPLOAD_" + Date.now().toString().slice(-6), // 批次上傳編號
+                    "LINE": "1",                                     // 預設第一行
+                    "CUSTOMER NO.": data.buyer_id || "",             // 對應：買方統編 (視為客戶編號)
+                    "PO NO.": data.invoice_no || "",                 // 暫用發票號碼作為 PO 參考
+                    "ORDER TYPE": "STANDARD",                        // 範例：標準訂單
+                    "DATE": data.invoice_date || "",                 // 對應：發票日期
+                    
+                    // === 出貨與帳單資訊 (Ship To/Bill To) ===
+                    "SHIP TO": data.buyer_address || "",             // 對應：買方地址 (Ship To)
+                    "SHIP TO ATTN": data.buyer_name || "",           // 對應：買方名稱 (收件人)
+                    "BILL TO": data.buyer_address || "",             // 暫同 Ship To (若有專門欄位需調整)
+                    
+                    // === 財務與銷售資訊 ===
+                    "CURRENCYY": "TWD",                              // 預設台幣 (請根據發票內容調整)
+                    "PRICE BOOK": "",                                // 留空
+                    "SALES": data.sales_total || data.grand_total || "", // 對應：銷售額或總金額
+                    "PAYMENT TERM": "",                              // 留空
+                    
+                    // === 系統與物流資訊 ===
+                    "WH": "MAIN",                                    // 範例：主倉庫
+                    "LINE SET": "1",
+                    "SHIPPING METHOD": "AIR",                        // 範例：空運
+                    "FOB": "",
+                    "SHIPPING INSTRUCTIONS": "",
+                    "CONVERSION TYPE": "STANDARD"
+                })
+            },
+            'TWO_STAGE': {
+                id: 'TWO_STAGE', name: '兩階段', desc: '兩階段.csv (批次處理)', icon: '⚙️', ext: 'csv',
+                headers: [
+                    "群組名", "From Org", "To Org", "單據別", "Transaction Type", 
+                    "對象別", "對象別編號", "EndCust對象別", "EndCust對象別編號", 
+                    "內or外銷", "異動原因", "Mawb", "Hawb", "進口報單", 
+                    "表頭備註", "WF優先序", "Ship Via", "申請者工號", "Line Num", 
+                    "From Item", "From Subinvnetory", "To Subinventory", "Quantity", 
+                    "Po Number", "Invoice Number", "Vendor RMA Num", "Credit Number", 
+                    "表身備註", "燒錄單號", "Check Sum", "產地", "Do No 原廠", "RMA No(Attribute1)"
+                ],
+                // 資料對應邏輯
+                mapFn: (data) => ({
+                    // === 核心單據資訊 (與 OCR 對應) ===
+                    "群組名": "OCR_INV_GROUP",                   // 範例：批次處理群組名稱
+                    "單據別": "INV",                             // 範例：發票單據
+                    "Invoice Number": data.invoice_no || "",     // 對應：發票號碼
+                    "Quantity": data.quantity || "1",            // 對應：數量
+                    "Line Num": "1",                             // 預設第一行
+                    "From Item": data.item_name || "",           // 對應：品名
+                    
+                    // === 交易對象資訊 ===
+                    "對象別": "VENDOR",                          // 預設交易對象為供應商
+                    "對象別編號": data.seller_id || "",          // 對應：賣方統編
+                    
+                    // === 組織與交易類型 (需依系統調整) ===
+                    "From Org": "TW_WH",                         // 範例：來源組織
+                    "To Org": "TW_MFG",                          // 範例：目的組織
+                    "Transaction Type": "RECEIPT",               // 範例：收貨/入庫
+                    
+                    // === 備註與追蹤資訊 ===
+                    "表頭備註": `OCR Invoice Upload: ${data.invoice_no}`,
+                    "表身備註": "",
+                    
+                    // === 預設或留空欄位 ===
+                    "EndCust對象別": "",
+                    "EndCust對象別編號": "",
+                    "內or外銷": "內銷",
+                    "異動原因": "",
+                    "Mawb": "",
+                    "Hawb": "",
+                    "進口報單": "",
+                    "WF優先序": "3",
+                    "Ship Via": "",
+                    "申請者工號": "",
+                    "From Subinvnetory": "STAGING",
+                    "To Subinventory": "STORES",
+                    "Po Number": "",
+                    "Vendor RMA Num": "",
+                    "Credit Number": "",
+                    "燒錄單號": "",
+                    "Check Sum": "",
+                    "產地": "",
+                    "Do No 原廠": "",
+                    "RMA No(Attribute1)": ""
+                })
+            }
+        };
+
+        // === 類型對照表：決定哪些類型顯示哪些格式 ===
+        const typeMapping = {
+            'invoice': ['406', '407'],        // 發票 -> 只顯示 406, 407
+            'order': ['CO', 'SO', 'TWO_STAGE'] // 訂單 -> 顯示 CO, SO, 兩階段
+        };
+
+        // === 初始化邏輯 ===
+        window.addEventListener('DOMContentLoaded', () => {
+            // 1. 讀取資料
+            const savedData = localStorage.getItem('shared_ocr_data');
+            // 2. 讀取類型 (關鍵步驟)
+            const savedType = localStorage.getItem('selected_doc_type');
+            
+            if (savedType && typeMapping[savedType]) {
+                docType = savedType;
+                console.log("偵測到文件類型:", docType);
+            } else {
+                console.log("無文件類型，使用預設 (invoice)");
+            }
+
+            // 更新標題
+            const typeName = docType === 'invoice' ? '發票' : '訂單';
+            document.getElementById('formatTitle').textContent = `由於您選擇了【${typeName}】，請選擇對應的匯出格式：`;
+
+            if (savedData) {
+                try {
+                    currentData = JSON.parse(savedData);
+                    setText('sum_invoice_no', currentData.invoice_no);
+                    setText('sum_invoice_date', currentData.invoice_date);
+                    setText('sum_seller_id', currentData.seller_id);
+                    setText('sum_grand_total', currentData.grand_total);
+                } catch (e) { console.error(e); }
+            }
+
+            // 3. 動態生成格式卡片
+            renderFormatCards();
+        });
+
+        function renderFormatCards() {
+            const container = document.getElementById('formatContainer');
+            container.innerHTML = ''; // 清空
+
+            // 取得該類型允許的格式 ID 列表
+            const allowedFormats = typeMapping[docType];
+
+            allowedFormats.forEach(formatId => {
+                const config = allFormats[formatId];
+                if (!config) return;
+
+                // 建立卡片 HTML
+                const card = document.createElement('div');
+                card.className = 'format-card';
+                card.onclick = () => selectFormat(formatId, card);
+                
+                card.innerHTML = `
+                    <div class="check-mark">✓</div>
+                    <div class="format-icon">${config.icon}</div>
+                    <div class="format-name">${config.name}</div>
+                    <div class="format-desc">${config.desc}</div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function setText(id, val) {
+            const el = document.getElementById(id);
+            if(el) el.textContent = val || '-';
+        }
+
+        // === 互動邏輯 ===
+        function selectFormat(formatKey, cardElement) {
+            selectedFormat = formatKey;
+            
+            // UI 更新
+            document.querySelectorAll('.format-card').forEach(c => c.classList.remove('selected'));
+            cardElement.classList.add('selected');
+
+            // 按鈕更新
+            const config = allFormats[formatKey];
+            const btn = document.getElementById('downloadBtn');
+            btn.disabled = false;
+            btn.textContent = `⬇️ 下載 ${config.name}`;
+        }
+
+        function goBackToEdit() {
+            window.location.href = 'invoice_OCR_result.html';
+        }
+
+        // === 下載邏輯 ===
+        function generateAndDownload() {
+            if (!selectedFormat) return;
+
+            const config = allFormats[selectedFormat];
+            
+            // 準備資料
+            const mappedRow = config.mapFn(currentData);
+            const dataArray = [mappedRow];
+
+            // 建立 Excel/CSV 物件
+            const ws = XLSX.utils.json_to_sheet(dataArray, { header: config.headers });
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "ExportData");
+
+            // 決定檔名
+            const fileNo = currentData.invoice_no || 'Data';
+            const prefix = config.desc.split(' ')[0].split('.')[0]; // 抓取檔名前綴 (如 406INF)
+            const fileName = `${prefix}_${fileNo}.${config.ext}`;
+            
+            // 觸發下載
+            XLSX.writeFile(wb, fileName);
+        }
+    </script>
+</body>
+</html>
