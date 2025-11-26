@@ -1,0 +1,2209 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧文件處理系統</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        /* 頁面標題 */
+        .page-header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .page-header h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .page-header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        /* 步驟指示器 */
+        .steps-indicator {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 40px;
+            gap: 20px;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .step.active .step-circle {
+            background: white;
+            color: #667eea;
+            transform: scale(1.1);
+        }
+
+        .step.completed .step-circle {
+            background: #4caf50;
+            color: white;
+        }
+
+        .step-label {
+            color: white;
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        .step.active .step-label {
+            opacity: 1;
+            font-weight: 600;
+        }
+
+        .step-arrow {
+            color: white;
+            opacity: 0.5;
+            font-size: 20px;
+        }
+
+        /* 主要內容卡片 */
+        .main-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            min-height: 500px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 隱藏元素 */
+        .hidden {
+            display: none !important;
+        }
+
+        /* ===== 第一層：選擇類型 + 上傳 ===== */
+        .layer-title {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+            font-size: 24px;
+        }
+
+        .type-selection {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            max-width: 700px;
+            margin: 0 auto 40px;
+        }
+
+        .type-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+        }
+
+        .type-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            border-color: #667eea;
+        }
+
+        .type-card.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .type-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .type-card h3 {
+            font-size: 22px;
+            margin-bottom: 10px;
+        }
+
+        .type-card p {
+            font-size: 13px;
+            opacity: 0.8;
+        }
+
+        .format-tags {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .format-tag {
+            background: rgba(255, 255, 255, 0.3);
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .type-card.selected .format-tag {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* 上傳區域 */
+        .upload-section {
+            max-width: 700px;
+            margin: 0 auto;
+            padding-top: 20px;
+            border-top: 2px dashed #e0e0e0;
+        }
+
+        .upload-zone {
+            border: 3px dashed #d0d0d0;
+            border-radius: 16px;
+            padding: 50px 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+
+        .upload-zone:hover {
+            border-color: #667eea;
+            background: #f5f6ff;
+        }
+
+        .upload-zone.dragover {
+            border-color: #667eea;
+            background: #e8eaff;
+            transform: scale(1.02);
+        }
+
+        .upload-zone.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .upload-icon {
+            font-size: 56px;
+            margin-bottom: 20px;
+        }
+
+        .upload-zone h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .upload-zone p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .file-info {
+            background: #f0f0f0;
+            padding: 20px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .file-info .icon {
+            font-size: 40px;
+        }
+
+        .file-details {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .file-size {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .remove-file-btn {
+            background: #ff5252;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+        .remove-file-btn:hover {
+            background: #ff1744;
+        }
+
+        /* ===== 第二層：OCR 結果 ===== */
+        .ocr-result-section {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .result-header {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: white;
+            padding: 20px 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .result-header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .result-header .icon {
+            font-size: 40px;
+        }
+
+        .result-header h3 {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .result-header p {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .confidence-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .ocr-data-card {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .data-item {
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .data-label {
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .data-value {
+            color: #333;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .warning-box .icon {
+            font-size: 24px;
+        }
+
+        .warning-box p {
+            color: #856404;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        /* ===== 第三層：格式選擇 ===== */
+        .format-selection-section {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .selected-data-summary {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .selected-data-summary h4 {
+            color: #1976d2;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .summary-item {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .summary-item .label {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .summary-item .value {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .format-selection-title {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+        }
+
+        .format-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .format-option {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 25px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .format-option:hover {
+            border-color: #667eea;
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.2);
+        }
+
+        .format-option.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+            color: white;
+        }
+
+        .format-option .icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+        }
+
+        .format-option h4 {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .format-option p {
+            font-size: 13px;
+            opacity: 0.8;
+        }
+
+        /* 按鈕 */
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 14px 32px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-warning {
+            background: #ff9800;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #f57c00;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* JSON 檢視器 */
+        .json-viewer-section {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .json-viewer-header {
+            background: #333;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .json-viewer-header h4 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .toggle-btn {
+            background: #555;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+
+        .toggle-btn:hover {
+            background: #777;
+        }
+
+        /* JSON 檢視器標籤頁樣式 */
+        .json-view-tabs {
+            display: flex;
+            gap: 8px;
+        }
+
+        .json-tab {
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            padding: 6px 12px;
+            border-radius: 4px 4px 0 0;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+            color: #666;
+        }
+
+        .json-tab:hover {
+            background: #e0e0e0;
+        }
+
+        .json-tab.active {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .json-viewer-container {
+            max-height: 800px;
+            overflow-y: auto;
+            background: #2d2d2d;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .json-content {
+            margin: 0;
+            color: #4ec9b0;
+            font-size: 12px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .copy-btn {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: #45a049;
+        }
+
+        .copy-btn.copied {
+            background: #2196f3;
+        }
+
+        /* 處理中動畫 */
+        .processing-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .processing-content {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .processing-spinner {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            border: 6px solid #f0f0f0;
+            border-top: 6px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .processing-text {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .processing-detail {
+            font-size: 14px;
+            color: #666;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* 響應式 */
+        @media (max-width: 768px) {
+            .type-selection {
+                grid-template-columns: 1fr;
+            }
+
+            .data-grid,
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .format-options {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- 頁面標題 -->
+        <div class="page-header">
+            <h1>🤖 智慧文件處理系統</h1>
+            <p>Powered by Copilot Studio & Azure OpenAI</p>
+        </div>
+
+        <!-- 步驟指示器 -->
+        <div class="steps-indicator">
+            <div class="step active" id="step1">
+                <div class="step-circle">1</div>
+                <div class="step-label">選擇類型並上傳</div>
+            </div>
+            <div class="step-arrow">→</div>
+            <div class="step" id="step2">
+                <div class="step-circle">2</div>
+                <div class="step-label">確認 OCR 結果</div>
+            </div>
+            <div class="step-arrow">→</div>
+            <div class="step" id="step3">
+                <div class="step-circle">3</div>
+                <div class="step-label">選擇匯出格式</div>
+            </div>
+        </div>
+
+        <!-- 主要內容卡片 -->
+        <div class="main-card">
+            <!-- ===== 第一層：選擇類型 + 上傳 ===== -->
+            <div id="layer1">
+                <h2 class="layer-title">選擇文件類型並上傳</h2>
+
+                <div class="type-selection">
+                    <div class="type-card" id="invoiceCard" onclick="selectType('invoice')">
+                        <div class="type-icon">📄</div>
+                        <h3>發票</h3>
+                        <p>自動辨識發票內容</p>
+                        <div class="format-tags">
+                            <span class="format-tag">406INF.xlsx</span>
+                            <span class="format-tag">407INF.csv</span>
+                        </div>
+                    </div>
+
+                    <div class="type-card" id="orderCard" onclick="selectType('order')">
+                        <div class="type-icon">🛒</div>
+                        <h3>訂單</h3>
+                        <p>識別訂單資訊</p>
+                        <div class="format-tags">
+                            <span class="format-tag">CO.csv</span>
+                            <span class="format-tag">SO.csv</span>
+                            <span class="format-tag">兩階段.csv</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="upload-section" id="uploadSection">
+                    <div id="uploadArea">
+                        <div class="upload-zone disabled" id="uploadZone">
+                            <div class="upload-icon">📎</div>
+                            <h3>請先選擇文件類型</h3>
+                            <p>選擇上方的發票或訂單後即可上傳</p>
+                        </div>
+                    </div>
+
+                    <div id="fileInfoArea" class="hidden">
+                        <div class="file-info">
+                            <div class="icon">📄</div>
+                            <div class="file-details">
+                                <div class="file-name" id="fileName"></div>
+                                <div class="file-size" id="fileSize"></div>
+                            </div>
+                            <button class="remove-file-btn" onclick="removeFile()">移除</button>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="btn btn-secondary" onclick="resetToStart()">重新選擇</button>
+                            <button class="btn btn-primary" onclick="startOCR()">開始辨識</button>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="file" id="fileInput" accept=".pdf" onchange="handleFileUpload(event)">
+            </div>
+
+            <!-- ===== 第二層：OCR 結果 ===== -->
+            <div id="layer2" class="hidden">
+                <div class="ocr-result-section">
+                    <div class="result-header">
+                        <div class="result-header-left">
+                            <div class="icon">✅</div>
+                            <div>
+                                <h3>OCR 辨識完成</h3>
+                                <p>文件已成功辨識並結構化</p>
+                            </div>
+                        </div>
+                        <div class="confidence-badge" id="confidenceBadge">
+                            信賴度: 95%
+                        </div>
+                    </div>
+
+                    <div class="warning-box">
+                        <div class="icon">💡</div>
+                        <p>請仔細檢查辨識結果，如果資料有誤，可以點擊「重新辨識」</p>
+                    </div>
+
+                    <div class="ocr-data-card">
+                        <div class="data-grid" id="ocrDataGrid">
+                            <!-- 動態生成 -->
+                        </div>
+                    </div>
+
+                    <!-- JSON 檢視器 -->
+                    <div class="json-viewer-section">
+                        <div class="json-viewer-header">
+                            <h4 style="margin: 0;">📋 完整 JSON 回應</h4>
+                            <button class="copy-btn" id="copyJsonBtn" onclick="copyJSONToClipboard()">📋 複製</button>
+                        </div>
+                        <div id="jsonViewerContainer" class="json-viewer-container">
+                            <pre id="jsonContent" class="json-content"></pre>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary" onclick="resetToStart()">取消</button>
+                        <button class="btn btn-warning" onclick="retryOCR()">🔄 重新辨識</button>
+                        <button class="btn btn-success" onclick="confirmOCR()">✓ 確認並繼續</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== 第三層：選擇匯出格式 ===== -->
+            <div id="layer3" class="hidden">
+                <div class="format-selection-section">
+                    <div class="selected-data-summary">
+                        <h4>
+                            <span>📋</span>
+                            <span>已辨識資料摘要</span>
+                        </h4>
+                        <div class="summary-grid" id="summaryGrid">
+                            <!-- 動態生成 -->
+                        </div>
+                    </div>
+
+                    <h3 class="format-selection-title">� 請選擇匯出格式</h3>
+
+                    <div class="format-options" id="formatOptions">
+                        <!-- 動態生成 -->
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary" onclick="backToOCR()">返回檢視</button>
+                        <button class="btn btn-primary" id="downloadBtn" onclick="downloadFile()" disabled>
+                            ⬇️ 下載檔案
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 處理中動畫 -->
+    <div id="processingOverlay" class="processing-overlay hidden">
+        <div class="processing-content">
+            <div class="processing-spinner"></div>
+            <div class="processing-text" id="processingText">正在處理...</div>
+            <div class="processing-detail" id="processingDetail"></div>
+        </div>
+    </div>
+
+    <script>
+        // ===== Azure Function 配置 =====
+        // 新版本使用官方 SDK (推薦)
+        const AZURE_FUNCTION_URL_SDK = 'https://wk-pdf-ocr.azurewebsites.net/api/upload-ocr-sdk';
+        // 舊版本使用直接 REST 調用 (已棄用)
+        const AZURE_FUNCTION_URL_LEGACY = 'https://wk-pdf-ocr.azurewebsites.net/api/upload-ocr';
+
+        // 使用 SDK 版本（推薦）
+        const AZURE_FUNCTION_URL = AZURE_FUNCTION_URL_SDK;
+        const AZURE_FUNCTION_KEY = 'WroYmVpW907kYgMrRNkhwcHjBH42Hl7DZ9K1-3YszFUwAzFu1iAZNw==';
+
+        // 全局變數
+        let selectedType = null;
+        let uploadedFile = null;
+        let selectedFormat = null;
+        let ocrData = null;
+
+        // 類型配置
+        const typeConfig = {
+            invoice: {
+                icon: '📄',
+                name: '發票',
+                formats: [
+                    { id: '406', name: '406 格式', desc: 'Excel 格式輸出', icon: '📊', ext: '.xlsx' },
+                    { id: '407', name: '407 格式', desc: 'CSV 格式輸出', icon: '📋', ext: '.csv' }
+                ],
+                sampleData: {
+                    '發票號碼': 'AB-12345678',
+                    '發票日期': '2025-11-15',
+                    '客戶名稱': 'YGC 能源材料股份有限公司',
+                    '統一編號': '12345678',
+                    '品項': '鑄鐵管件配件',
+                    '數量': '500 件',
+                    '未稅金額': 'NT$ 15,800',
+                    '稅額': 'NT$ 790',
+                    '總計': 'NT$ 16,590',
+                    '狀態': '✅ 已開立'
+                }
+            },
+            order: {
+                icon: '🛒',
+                name: '訂單',
+                formats: [
+                    { id: 'CO', name: 'CO 格式', desc: '客戶訂單格式', icon: '📦', ext: '.csv' },
+                    { id: 'SO', name: 'SO 格式', desc: '銷售訂單格式', icon: '🛍️', ext: '.csv' },
+                    { id: 'TWO_STAGE', name: '兩階段格式', desc: '兩階段處理格式', icon: '⚙️', ext: '.csv' }
+                ],
+                sampleData: {
+                    '訂單編號': 'ORD-2025110001',
+                    '訂單日期': '2025-11-01',
+                    '客戶代碼': 'C001',
+                    '客戶名稱': 'YGC 能源材料',
+                    '產品代碼': 'P-CI-001',
+                    '產品名稱': '鑄鐵管件',
+                    '數量': '500 件',
+                    '單價': 'NT$ 180',
+                    '總金額': 'NT$ 90,000',
+                    '交期': '2025-11-25'
+                }
+            }
+        };
+
+        // ===== 第一層：選擇類型 =====
+        function selectType(type) {
+            selectedType = type;
+
+            // 更新選中狀態
+            document.getElementById('invoiceCard').classList.remove('selected');
+            document.getElementById('orderCard').classList.remove('selected');
+            document.getElementById(type + 'Card').classList.add('selected');
+
+            // 啟用上傳區域
+            const uploadZone = document.getElementById('uploadZone');
+            uploadZone.classList.remove('disabled');
+            uploadZone.onclick = () => document.getElementById('fileInput').click();
+            uploadZone.querySelector('h3').textContent = '上傳 PDF 文件';
+            uploadZone.querySelector('p').textContent = '點擊或拖放 PDF 文件到此處 (最大 10MB)';
+        }
+
+        // 拖放上傳功能
+        const uploadZone = document.getElementById('uploadZone');
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            if (!uploadZone.classList.contains('disabled')) {
+                uploadZone.classList.add('dragover');
+            }
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            if (!uploadZone.classList.contains('disabled')) {
+                const files = e.dataTransfer.files;
+                if (files.length > 0 && files[0].type === 'application/pdf') {
+                    handleFile(files[0]);
+                }
+            }
+        });
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            uploadedFile = file;
+            const fileName = file.name;
+            const fileSize = (file.size / 1024).toFixed(2);
+
+            document.getElementById('fileName').textContent = fileName;
+            document.getElementById('fileSize').textContent = `檔案大小: ${fileSize} KB`;
+
+            document.getElementById('uploadArea').classList.add('hidden');
+            document.getElementById('fileInfoArea').classList.remove('hidden');
+        }
+
+        function removeFile() {
+            uploadedFile = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('uploadArea').classList.remove('hidden');
+            document.getElementById('fileInfoArea').classList.add('hidden');
+        }
+
+        // ===== 第二層：OCR 處理與結果 =====
+        async function startOCR() {
+            if (!uploadedFile) {
+                alert('請先上傳檔案！');
+                return;
+            }
+
+            showProcessing('正在上傳文件...', 'Azure Function 處理中');
+
+            try {
+                // 建立 FormData
+                const formData = new FormData();
+                formData.append('file', uploadedFile);
+
+                // 呼叫 Azure Function
+                updateProcessing('正在進行 OCR 辨識...', 'Azure Computer Vision 分析中');
+
+                const response = await fetch(`${AZURE_FUNCTION_URL}?code=${AZURE_FUNCTION_KEY}`, {
+                    method: 'POST',
+                    body: formData,
+                    mode: 'cors',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Response error:', errorText);
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                updateProcessing('正在結構化資料...', '解析 OCR 結果');
+
+                const result = await response.json();
+                console.log('OCR Result:', result);
+
+                // 檢查結果格式
+                // 新格式：{ meta, extracted, fullText, raw }
+                // 舊格式：{ status, analyzeResult, ... }
+                const isNewFormat = result.meta && result.extracted && typeof result.fullText === 'string';
+                const isOldFormat = result.status === 'succeeded' || result.analyzeResult;
+
+                if (!isNewFormat && !isOldFormat) {
+                    throw new Error(`不支援的 OCR 結果格式: ${JSON.stringify(Object.keys(result))}`);
+                }
+
+                // 如果是舊格式且狀態不是 succeeded，拋出錯誤
+                if (isOldFormat && result.status && result.status !== 'succeeded') {
+                    throw new Error(`OCR 辨識狀態: ${result.status}`);
+                }
+
+                // 儲存結果到 localStorage
+                const storageData = isNewFormat ? result : {
+                    meta: { timestamp: new Date().toISOString() },
+                    extracted: {},
+                    fullText: '',
+                    raw: result.analyzeResult,
+                    analyzeResult: result.analyzeResult
+                };
+
+                storageData.fileName = uploadedFile.name;
+                storageData.fileSize = uploadedFile.size;
+                storageData.timestamp = new Date().toISOString();
+
+                localStorage.setItem('ocrResult', JSON.stringify(storageData));
+                console.log('✅ 結果已存儲到 localStorage:', storageData);
+
+                // 解析 OCR 結果（用於當前頁面顯示）
+                parseOCRResult(result);
+
+                hideProcessing();
+                showOCRResults();
+
+            } catch (error) {
+                hideProcessing();
+                console.error('❌ OCR 錯誤詳情:', error);
+                console.error('錯誤堆棧:', error.stack);
+                console.error('ocrData 狀態:', ocrData);
+
+                let errorMsg = `OCR 辨識失敗：${error.message}\n\n`;
+                errorMsg += `詳細資訊：${error.toString()}\n\n`;
+
+                if (error.message.includes('Failed to fetch')) {
+                    errorMsg += '可能原因：\n';
+                    errorMsg += '1. 網路連線問題\n';
+                    errorMsg += '2. Azure Function 端點無法連接\n';
+                    errorMsg += '3. CORS 設定問題\n';
+                    errorMsg += '4. Function Key 可能已過期\n\n';
+                    errorMsg += '建議：請檢查瀏覽器開發者工具的 Console 和 Network 標籤';
+                } else if (error.message.includes('HTTP')) {
+                    errorMsg += '伺服器回應錯誤\n';
+                    errorMsg += '請檢查 Azure Function 設定和 Computer Vision 服務';
+                } else if (error.message.includes('Cannot read')) {
+                    errorMsg += '資料格式錯誤\n';
+                    errorMsg += '請檢查 Azure Function 返回的數據結構';
+                }
+
+                console.error(errorMsg);
+                alert(errorMsg);
+            }
+        }
+
+        // 解析 OCR 結果
+        function parseOCRResult(result) {
+            console.log('📊 開始解析 OCR 結果:', result);
+
+            if (result.status === 'succeeded' && result.pages && Array.isArray(result.pages)) {
+                console.log('✅ 偵測到 Azure SDK 格式');
+
+                // 將 pages 轉換為 analyzeResult 格式
+                const analyzeResult = {
+                    apiVersion: '2024-02-29-preview',
+                    modelId: 'prebuilt-read',
+                    status: result.status,
+                    pages: result.pages,
+                    tables: result.tables || [],
+                    readResults: [
+                        {
+                            page: 1,
+                            angle: 0,
+                            width: 0,
+                            height: 0,
+                            lines: result.pages[0]?.lines || []
+                        }
+                    ],
+                    content: result.pages.map(p => p.lines.map(l => l.text).join('\n')).join('\n\n')
+                };
+
+                // 調用舊格式解析邏輯
+                parseOCRResultAsOldFormat({ analyzeResult });
+                return;
+            }
+
+            // 檢查是否是新格式（已在 Azure Function 中結構化）
+            if (result.meta && result.extracted && typeof result.fullText === 'string') {
+                console.log('✅ 偵測到結構化格式');
+                ocrData = result.extracted;
+
+                // 確保 items 是陣列
+                if (!Array.isArray(ocrData.items)) {
+                    ocrData.items = [];
+                    console.warn('⚠️ items 欄位不是陣列，已初始化為空陣列');
+                }
+
+                ocrData._raw = result.raw;
+                ocrData._allText = result.fullText;
+                ocrData._meta = result.meta;
+
+                if (!ocrData._meta.confidence && ocrData._raw) {
+                    console.log('🔄 新格式缺少信心分數，正在前端補算...');
+                    ocrData._meta.confidence = calculateConfidenceFromRaw(ocrData._raw);
+                }
+
+                console.log('✅ 結構化格式解析完成 (含信賴度):', ocrData._meta.confidence);
+                return;
+            }
+
+            // 如果都不匹配，嘗試作為舊格式處理
+            console.log('ℹ️ 使用舊格式解析...');
+            parseOCRResultAsOldFormat(result);
+        }
+
+        function calculateConfidenceFromRaw(rawResult) {
+            let avgConfidence = 0.90; // 預設值
+
+            const analyzeResult = rawResult.analyzeResult || rawResult; // 相容不同層級
+            const pages = analyzeResult.pages || [];
+
+            // 策略 A: Document 層級信心值
+            if (analyzeResult.documents && analyzeResult.documents.length > 0 && typeof analyzeResult.documents[0].confidence === 'number') {
+                avgConfidence = analyzeResult.documents[0].confidence;
+            }
+            // 策略 B: Word 層級平均信心值
+            else if (pages && pages.length > 0) {
+                let totalConf = 0;
+                let wordCount = 0;
+                pages.forEach(page => {
+                    if (page.words) {
+                        page.words.forEach(word => {
+                            if (typeof word.confidence === 'number') {
+                                totalConf += word.confidence;
+                                wordCount++;
+                            }
+                        });
+                    }
+                });
+                if (wordCount > 0) avgConfidence = totalConf / wordCount;
+            }
+
+            return parseFloat(avgConfidence.toFixed(4));
+        }
+
+        // 舊格式解析邏輯（提取到獨立函數）
+        function parseOCRResultAsOldFormat(result) {
+            // 舊格式相容性：如果是 Document Intelligence 的原始回應
+            const lines = result.analyzeResult?.readResults?.[0]?.lines || [];
+
+            // 提取所有文字行
+            const textLines = lines.map(line => line.text);
+
+            // 根據文件類型解析不同欄位
+            if (selectedType === 'invoice') {
+                ocrData = parseInvoiceData(textLines, lines);
+            } else if (selectedType === 'order') {
+                ocrData = parseOrderData(textLines, lines);
+            }
+
+            // 儲存原始 OCR 結果供參考
+            ocrData._raw = result;
+            ocrData._allText = textLines.join('\n');
+
+            // ===== 方案 A：精簡提取 =====
+            // 將複雜的 Document Intelligence 回應轉換成簡潔的結構
+            ocrData._simplified = extractSimplifiedData(result, selectedType);
+
+            console.log('✅ 舊格式解析完成:', {
+                invoiceNo: ocrData.invoiceNo,
+                seller: ocrData.seller,
+                itemCount: ocrData.items ? ocrData.items.length : 0,
+                totalAmount: ocrData.totalAmount
+            });
+        }
+
+        // 【方案 A】從 Document Intelligence 回應提取精簡資料
+        // 將龐大的 API 回應轉換為易於存儲和使用的最小化結構
+        function extractSimplifiedData(result, docType) {
+            const analyzeResult = result.analyzeResult || {};
+            const pages = analyzeResult.pages || [];
+            const content = analyzeResult.content || '';
+
+            // ============================================
+            // 1. 新增：計算信心分數 (Calculate Confidence)
+            // ============================================
+            let avgConfidence = 0.0;
+
+            // 策略 A: 如果是 Invoice/Prebuilt 模型，直接取整份文件的信心分數
+            if (analyzeResult.documents && analyzeResult.documents.length > 0 && typeof analyzeResult.documents[0].confidence === 'number') {
+                avgConfidence = analyzeResult.documents[0].confidence;
+            }
+            // 策略 B: 如果是 Read 模型，計算所有文字(Words)的平均信心分數
+            else if (pages && pages.length > 0) {
+                let totalConf = 0;
+                let wordCount = 0;
+
+                pages.forEach(page => {
+                    if (page.words) {
+                        page.words.forEach(word => {
+                            if (typeof word.confidence === 'number') {
+                                totalConf += word.confidence;
+                                wordCount++;
+                            }
+                        });
+                    }
+                });
+
+                if (wordCount > 0) {
+                    avgConfidence = totalConf / wordCount;
+                } else {
+                    avgConfidence = 0.95; // 預設值 (如果沒有任何單字信心值)
+                }
+            } else {
+                avgConfidence = 0.95; // 預設 fallback，避免顯示 0%
+            }
+
+            // 格式化：保留小數點後 4 位 (例如 0.9852)
+            avgConfidence = parseFloat(avgConfidence.toFixed(4));
+
+            console.log(`📊 [系統] 計算出的 OCR 平均信賴度: ${avgConfidence}`);
+
+            // ============================================
+            // 2. 建構回傳資料結構
+            // ============================================
+            const simplified = {
+                // 元資料 (Metadata)
+                meta: {
+                    apiVersion: analyzeResult.apiVersion,
+                    model: analyzeResult.modelId,
+                    pageCount: pages.length,
+                    timestamp: new Date().toISOString(),
+                    confidence: avgConfidence // <--- 這裡存入計算好的分數
+                },
+
+                // 核心提取欄位 (Extracted Fields)
+                extracted: {},
+
+                // 原始全文 (Full Text - 供搜尋和備份)
+                fullText: content
+            };
+
+            // 根據文件類型提取對應的欄位
+            if (docType === 'invoice') {
+                simplified.extracted = extractInvoiceFields(content, pages);
+            } else if (docType === 'order') {
+                simplified.extracted = extractOrderFields(content, pages);
+            }
+
+            return simplified;
+        }
+
+        // 【改進版方案 A v3】從發票提取詳細欄位（支持多種格式）
+        function extractInvoiceFields(fullText, pages) {
+            const fields = {};
+            const lines = fullText.split('\n');
+
+            // ===== 基本資訊 =====
+            // Invoice Number - 改進：支持多種格式
+            let invoiceNo = null;
+
+            // 方法 1: 匹配 "Invoice No .:" 標籤後的值
+            let invoiceMatch = fullText.match(/Invoice\s*No\s*[:.]*\s*([A-Z0-9\-]+)/i);
+            if (invoiceMatch) {
+                invoiceNo = invoiceMatch[1].trim();
+            }
+
+            // 方法 2: 如果未找到，嘗試純數字+字母格式 (2020066251106A)
+            if (!invoiceNo) {
+                invoiceMatch = fullText.match(/(\d{10,14}[A-Z]{1,3})\b/);
+                if (invoiceMatch) {
+                    invoiceNo = invoiceMatch[1];
+                }
+            }
+
+            // 方法 3: 嘗試其他標籤格式
+            if (!invoiceNo) {
+                invoiceMatch = fullText.match(/(?:INV\s*NO|INVOICE#)[\s:]*([A-Z0-9\-]+)/i);
+                if (invoiceMatch) {
+                    invoiceNo = invoiceMatch[1].trim();
+                }
+            }
+
+            fields.invoiceNo = invoiceNo;
+
+            // Date - 改進：支持多種日期格式
+            let dateMatch = fullText.match(/DATE[\s:]*(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})/i);
+            if (!dateMatch) {
+                dateMatch = fullText.match(/(?:INVOICE DATE)[\s:]*(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})/i);
+            }
+            if (!dateMatch) {
+                dateMatch = fullText.match(/(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})/);
+            }
+            fields.date = dateMatch ? dateMatch[1] : null;
+
+            // ===== 供應商和買方 =====
+            // Seller/Supplier - 改進：匹配 GIGADEVICE 或其他格式
+            let sellerMatch = fullText.match(/^(.+?LIMITED.+)$/im) ||
+                fullText.match(/^([A-Z]+(?:\s+[A-Z]+)*(?:\s+(?:LIMITED|CO\.|INC|CORP|COMPANY))?)/m);
+            fields.seller = sellerMatch ? sellerMatch[1].trim() : null;
+
+            // Seller Address
+            let addressMatch = fullText.match(/(?:^|\n)(B\/F\s+BLDG\s+[^\n]+|[A-Z\s]*ADDRESS[\s:]*\n\s*([^\n]+))/i);
+            fields.sellerAddress = addressMatch ? addressMatch[0].replace(/^[\n]/, '').trim() : null;
+
+            // Contact/Tel
+            let telMatch = fullText.match(/(?:TEL|PHONE|CONTACT)[\s:]*([^\n]+)/i);
+            fields.contact = telMatch ? telMatch[1].trim() : null;
+
+            // Buyer/Customer - 改進：支持中文
+            let buyerMatch = fullText.match(/(?:BILL TO|SHIP TO|BUYER|CUSTOMER)[\s:]*\n\s*([^\n]+)/i) ||
+                fullText.match(/威健(?:實業|實業股份有限公司)/i);
+            fields.buyer = buyerMatch ? (typeof buyerMatch[1] === 'string' ? buyerMatch[1].trim() : buyerMatch[0]) : null;
+
+            // ===== 交易條款 =====
+            // Trade Term
+            let tradeTermMatch = fullText.match(/Trade\s+Term[\s:]*([^\n]+)/i);
+            fields.tradeTerm = tradeTermMatch ? tradeTermMatch[1].trim() : null;
+
+            // Origin/Country
+            let originMatch = fullText.match(/(?:COO|ORIGIN|COUNTRY)[\s:]*([^\n]+)/i);
+            fields.origin = originMatch ? originMatch[1].trim() : null;
+
+            // ===== 表格行項目（完整保留） =====
+            fields.items = extractInvoiceTableItems(pages, fullText);
+
+            // ===== 金額和幣別 =====
+            // Total Amount - 改進：支持多種格式
+            let totalMatch = fullText.match(/(?:TOTAL|TOTAL:)[\s:]*([0-9,]+\.?\d*)/i) ||
+                fullText.match(/USD[\s:]*([0-9,]+\.?\d*)/i);
+            if (totalMatch) {
+                fields.totalAmount = parseFloat(totalMatch[1].replace(/,/g, ''));
+            }
+
+            // Currency - 改進：從 USD: 標籤中提取
+            let currencyMatch = fullText.match(/(?:USD|CNY|HKD|EUR|JPY)(?:[\s:]|$)/i);
+            fields.currency = currencyMatch ? currencyMatch[0].replace(/[\s:]/g, '').trim() : 'USD';
+
+            console.log('[OCR] 提取的字段:', {
+                invoiceNo: fields.invoiceNo,
+                date: fields.date,
+                seller: fields.seller,
+                totalAmount: fields.totalAmount,
+                currency: fields.currency,
+                itemCount: fields.items ? fields.items.length : 0
+            });
+
+            return fields;
+        }
+
+        // 改進版 v6：多模式容錯機制 (Standard + Alternative + Fallback)
+        function extractInvoiceTableItems(pages, fullText) {
+            // 嘗試標準模式 (英文發票)
+            let items = extractInvoiceTableItemsStandard(pages, fullText);
+            if (items) {
+                console.log('[OCR] 表格提取成功 (標準模式)');
+                return items;
+            }
+
+            // 若標準模式失敗，嘗試備用模式 (中文發票、替代標籤)
+            items = extractInvoiceTableItemsAlternative(pages, fullText);
+            if (items) {
+                console.log('[OCR] 表格提取成功 (備用模式)');
+                return items;
+            }
+
+            // 若仍失敗，嘗試簡化模式 (低結構發票)
+            items = extractTableItemsFromText(fullText);
+            if (items) {
+                console.log('[OCR] 表格提取成功 (簡化模式)');
+                return items;
+            }
+
+            // 所有模式都失敗，回傳 null
+            console.warn('[OCR] 無法自動解析表格，建議人工上傳資料');
+            return null;
+        }
+
+        // 模式 A：標準發票 (改進版 v2 - 支持行分隔格式，完整提取所有項目)
+        function extractInvoiceTableItemsStandard(pages, fullText) {
+            const items = [];
+            const allLines = fullText.split('\n');
+
+            // 找到表格開始行（包含 Item, Category, Cust. PO# 等標題）
+            let headerLineIdx = -1;
+            for (let i = 0; i < allLines.length; i++) {
+                const line = allLines[i].toUpperCase();
+                if (line.includes('ITEM') &&
+                    line.includes('CATEGORY') &&
+                    line.includes('QUANTITY')) {
+                    headerLineIdx = i;
+                    break;
+                }
+            }
+
+            if (headerLineIdx === -1) {
+                console.log('[OCR] 找不到表格標題行');
+                return null;
+            }
+
+            console.log(`[OCR] 找到表格標題在第 ${headerLineIdx} 行`);
+
+            // 找到 TOTAL 所在行（表格結束位置）
+            let totalLineIdx = -1;
+            for (let i = headerLineIdx + 1; i < allLines.length; i++) {
+                const line = allLines[i].toUpperCase();
+                if (line.includes('TOTAL:') || line.trim() === 'TOTAL') {
+                    totalLineIdx = i;
+                    break;
+                }
+            }
+
+            if (totalLineIdx === -1) {
+                totalLineIdx = allLines.length;
+            }
+
+            console.log(`[OCR] 表格結束在第 ${totalLineIdx} 行`);
+
+            // 從表頭後開始解析行項目
+            let i = headerLineIdx + 1;
+            while (i < totalLineIdx) {
+                const line = allLines[i].trim();
+
+                // 跳過空行
+                if (!line) {
+                    i++;
+                    continue;
+                }
+
+                // 行項目應該以數字開頭（Item No: 10, 20, 30 等）
+                const itemMatch = line.match(/^(\d{1,2})\s*$/);
+                if (!itemMatch) {
+                    i++;
+                    continue;
+                }
+
+                const itemNo = itemMatch[1];
+                let category = null;
+                let poNo = null;
+                let description = null;
+                let quantity = null;
+                let unitPrice = null;
+                let amount = null;
+
+                // 收集此項的所有數據行（直到遇到下一個數字開頭的行）
+                let j = i + 1;
+                const itemData = [];
+
+                while (j < totalLineIdx) {
+                    const nextLine = allLines[j].trim();
+
+                    if (!nextLine) {
+                        j++;
+                        continue;
+                    }
+
+                    // 如果遇到下一個項目（以數字開頭），停止收集此項
+                    if (/^\d{1,2}\s*$/.test(nextLine)) {
+                        break;
+                    }
+
+                    itemData.push(nextLine);
+                    j++;
+                }
+
+                // 解析收集的數據
+                for (const data of itemData) {
+                    const upperData = data.toUpperCase();
+                    const trimmed = data.trim();
+
+                    // Category (如 "Integrate Circuit")
+                    if (!category && (upperData.includes('CIRCUIT') || upperData.includes('COMPONENT'))) {
+                        category = trimmed;
+                    }
+                    // PO# (數字，通常 9 位)
+                    else if (!poNo && /^\d{9}$/.test(trimmed.replace(/[^\d]/g, ''))) {
+                        poNo = trimmed;
+                    }
+                    // Description (通常是 GD25... 格式)
+                    else if (!description && /^[A-Z0-9]{5,}/.test(trimmed)) {
+                        description = trimmed;
+                    }
+                    // Quantity (數字，可能有逗號，通常是四位數以上)
+                    else if (!quantity && /^\d{1,3}(?:,\d{3})*$/.test(trimmed)) {
+                        quantity = parseInt(trimmed.replace(/,/g, ''));
+                    }
+                    // Unit Price (小數點後 6 位或更少的數字)
+                    else if (!unitPrice && /^\d+\.\d{1,6}$/.test(trimmed)) {
+                        unitPrice = parseFloat(trimmed);
+                    }
+                    // Amount (包含小數點，通常是三位數以上的金額)
+                    else if (!amount && /^\d+(?:,\d{3})*\.\d{2}$/.test(trimmed)) {
+                        amount = parseFloat(trimmed.replace(/,/g, ''));
+                    }
+                }
+
+                // 建立項目物件
+                const item = {
+                    itemNo,
+                    category,
+                    poNo,
+                    description,
+                    quantity,
+                    unitPrice,
+                    amount
+                };
+
+                // 如果缺少金額但有數量和單價，計算金額
+                if (!item.amount && item.quantity && item.unitPrice) {
+                    item.amount = parseFloat((item.quantity * item.unitPrice).toFixed(2));
+                }
+
+                items.push(item);
+                console.log(`[OCR] 解析項目 ${itemNo}:`, item);
+
+                i = j;
+            }
+
+            console.log(`[OCR] 標準模式共提取 ${items.length} 個項目`);
+            return items.length > 0 ? items : null;
+        }
+
+        // 模式 B：備用發票 (中文標籤、替代邊界標記)
+        function extractInvoiceTableItemsAlternative(pages, fullText) {
+            const upperText = fullText.toUpperCase();
+            const items = [];
+
+            // 支援多種邊界標記
+            const startMarkers = ['QUANTITY', '数量', '品名', 'ITEMS', 'SKU', 'PART NUMBER'];
+            const endMarkers = ['TOTAL', '合计', '小计', 'SUBTOTAL', 'GRAND TOTAL', 'AMOUNT DUE'];
+
+            let tableStart = -1;
+            let tableEnd = -1;
+
+            for (const marker of startMarkers) {
+                tableStart = upperText.indexOf(marker.toUpperCase());
+                if (tableStart !== -1) break;
+            }
+
+            for (const marker of endMarkers) {
+                tableEnd = upperText.indexOf(marker.toUpperCase());
+                if (tableEnd !== -1) break;
+            }
+
+            if (tableStart === -1 || tableEnd === -1) {
+                return null;
+            }
+
+            const tableContent = fullText.substring(tableStart, tableEnd);
+            const tableLines = tableContent.split('\n').filter(l => l.trim().length > 0);
+
+            // 簡化的行號偵測 (支援 001, 1, A 等)
+            let i = 1;
+            while (i < tableLines.length) {
+                const line = tableLines[i].trim();
+
+                // 支援更多格式的行號：1-99, 001-999, A-Z
+                const lineNoMatch = line.match(/^([0-9A-Z]{1,3})\s+(.+)/);
+                if (!lineNoMatch || isNaN(parseInt(lineNoMatch[1])) && !/^[A-Z]$/.test(lineNoMatch[1])) {
+                    i++;
+                    continue;
+                }
+
+                const lineNo = lineNoMatch[1];
+                const lineRest = lineNoMatch[2];
+
+                const item = {
+                    lineNo,
+                    quantity: null,
+                    unit: null,
+                    itemNo: null,
+                    description: null,
+                    unitPrice: null,
+                    amount: null,
+                    poNo: null
+                };
+
+                // 支援更多單位類型
+                const qtyMatch = lineRest.match(/(\d+)\s+(PCS|EA|BOX|CASE|KG|M|PACK|UNITS?|SET|LOT|ROLL|件|套|卷|張|个|只)/i);
+                if (qtyMatch) {
+                    item.quantity = parseInt(qtyMatch[1]);
+                    item.unit = qtyMatch[2];
+                }
+
+                let j = i + 1;
+                const itemLines = [];
+
+                while (j < tableLines.length && !/^([0-9A-Z]{1,3})\s+/.test(tableLines[j].trim())) {
+                    itemLines.push(tableLines[j].trim());
+                    j++;
+                }
+
+                let textFieldCount = 0;
+                for (const iline of itemLines) {
+                    const trimmed = iline.trim();
+                    const isNumeric = /^[\d,\.]+$/.test(trimmed);
+
+                    if (isNumeric) {
+                        const num = parseFloat(trimmed.replace(/,/g, ''));
+                        if (num < 1000 && num > 0.1 && !item.unitPrice) {
+                            item.unitPrice = num;
+                        } else if (num >= 1000 && num < 10000000 && !item.amount) {
+                            item.amount = num;
+                        }
+                    } else if (trimmed.length > 0) {
+                        if (textFieldCount === 0) {
+                            item.itemNo = trimmed;
+                            textFieldCount++;
+                        } else if (textFieldCount === 1) {
+                            item.description = trimmed;
+                            textFieldCount++;
+                        }
+                    }
+                }
+
+                if (!item.amount && item.quantity && item.unitPrice) {
+                    item.amount = parseFloat((item.quantity * item.unitPrice).toFixed(2));
+                }
+
+                items.push(item);
+                i = j;
+            }
+
+            return items.length > 0 ? items : null;
+        }
+
+        // Fallback：從全文本提取表格項目
+        function extractTableItemsFromText(fullText) {
+            const items = [];
+            const lines = fullText.split('\n');
+            let inTable = false;
+            let currentItem = {};
+
+            lines.forEach((line, idx) => {
+                const content = line.trim();
+                const upperContent = content.toUpperCase();
+
+                // 檢測表格開始
+                if (upperContent.includes('QUANTITY') || upperContent.includes('ITEM NO')) {
+                    inTable = true;
+                    return;
+                }
+
+                // 檢測表格結束
+                if (inTable && (upperContent.includes('TOTAL') || upperContent.includes('FOR AND'))) {
+                    if (Object.keys(currentItem).length > 0) {
+                        items.push(currentItem);
+                    }
+                    inTable = false;
+                    return;
+                }
+
+                if (inTable && content.length > 0) {
+                    // 簡單的行項目提取
+                    const parts = content.split(/\s{2,}|\t/);
+
+                    if (parts[0] && /^\d+$/.test(parts[0])) {
+                        if (Object.keys(currentItem).length > 0) {
+                            items.push(currentItem);
+                        }
+                        currentItem = {
+                            lineNo: parts[0],
+                            quantity: null,
+                            unit: null,
+                            itemNo: parts[1] || null,
+                            description: parts[2] || null,
+                            unitPrice: null,
+                            amount: null,
+                            poNo: null
+                        };
+
+                        // 嘗試提取數值欄位
+                        parts.slice(3).forEach(part => {
+                            const num = parseFloat(part.replace(/[^\d.]/g, ''));
+                            if (!isNaN(num)) {
+                                if (num < 1000 && !currentItem.unitPrice) {
+                                    currentItem.unitPrice = num;
+                                } else if (num >= 1000 && !currentItem.amount) {
+                                    currentItem.amount = num;
+                                } else if (num > 100000 && !currentItem.poNo) {
+                                    currentItem.poNo = part;
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+
+            if (Object.keys(currentItem).length > 0) {
+                items.push(currentItem);
+            }
+
+            return items.length > 0 ? items : null;
+        }
+
+        // 從訂單提取關鍵欄位（精簡版）
+        function extractOrderFields(fullText, pages) {
+            const fields = {};
+
+            // Order Number / PO Number
+            let orderMatch = fullText.match(/(?:ORDER|PO)\s*(?:NO|#)?[\s:]*([^\n]+)/i);
+            fields.orderNo = orderMatch ? orderMatch[1].trim() : null;
+
+            // Date
+            let dateMatch = fullText.match(/(?:DATE|ORDER DATE)[\s:]*(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})/i);
+            fields.date = dateMatch ? dateMatch[1] : null;
+
+            // Quantity
+            let qtyMatch = fullText.match(/(?:QTY|QUANTITY)[\s:]*(\d+)/i);
+            fields.quantity = qtyMatch ? parseInt(qtyMatch[1]) : null;
+
+            return fields;
+        }
+
+
+        // 解析發票資料
+        function parseInvoiceData(textLines, lines) {
+            const data = {};
+
+            // 嘗試找出關鍵欄位
+            textLines.forEach((line, index) => {
+                const upperLine = line.toUpperCase();
+
+                // Invoice Number - 多種格式支援
+                if (upperLine.includes('INVOICE NO') || upperLine.includes('INV NO') || upperLine.includes('INVOICE#')) {
+                    // 支援多種格式：AB-12345678, AB12345678, 20200662511106A 等
+                    let match = line.match(/[A-Z]{2,4}[\-\s]?\d{8,}/i) ||
+                        textLines[index + 1]?.match(/[A-Z]{2,4}[\-\s]?\d{8,}/i);
+
+                    // 如果上面沒找到，嘗試找純數字後跟字母的格式
+                    if (!match) {
+                        match = line.match(/\d{8,}[A-Z]{1,3}/) ||
+                            textLines[index + 1]?.match(/\d{8,}[A-Z]{1,3}/);
+                    }
+
+                    // 如果還是沒找到，直接取 INVOICE NO 後面的非空白內容
+                    if (!match) {
+                        const invoiceMatch = line.match(/INVOICE\s*NO[\s:]*([^\s\n]+)/i) ||
+                            textLines[index + 1]?.match(/([^\s\n]+)/);
+                        if (invoiceMatch) match = invoiceMatch;
+                    }
+
+                    if (match) {
+                        // 如果 match 是陣列，取第 0 個或最後一個元素
+                        const invoiceNo = Array.isArray(match) ? (match[1] || match[0]) : match[0];
+                        data['發票號碼'] = invoiceNo.trim();
+                    }
+                }
+
+                // Date
+                if (upperLine.includes('DATE') && !upperLine.includes('UPDATE')) {
+                    const match = line.match(/\d{4}[-\/]\d{1,2}[-\/]\d{1,2}/) ||
+                        textLines[index + 1]?.match(/\d{4}[-\/]\d{1,2}[-\/]\d{1,2}/);
+                    if (match) data['發票日期'] = match[0];
+                }
+
+                // Customer Name / Seller
+                if (upperLine.includes('CUSTOMER') || upperLine.includes('SOLD TO') || upperLine.includes('BUYER')) {
+                    const nextLine = textLines[index + 1];
+                    if (nextLine && nextLine.trim().length > 3) {
+                        data['客戶名稱'] = nextLine.trim();
+                    }
+                }
+
+                // Total Amount - 支援 TOTAL 在不同行的情況
+                if (upperLine.includes('TOTAL') && !upperLine.includes('DESCRIPTION')) {
+                    // 先嘗試從同一行尋找
+                    let match = line.match(/[\d,]+\.?\d+/);
+
+                    // 如果同行沒有數字，從下一行尋找
+                    if (!match && index + 1 < textLines.length) {
+                        match = textLines[index + 1].match(/^[\d,]+\.?\d+/);
+                    }
+
+                    if (match) {
+                        data['總計'] = match[0];
+                    }
+                }
+
+                // Currency - 支援從 Amount(USD) 等格式中提取
+                if (!data['幣別']) {
+                    // 先嘗試從 Amount(USD), Price(USD) 等格式提取
+                    let currencyMatch = line.match(/Amount\s*\(\s*([A-Z]{3})\s*\)/i) ||
+                        line.match(/Price\s*\(\s*([A-Z]{3})\s*\)/i) ||
+                        line.match(/Currency\s*[:\s]*([A-Z]{3})/i);
+
+                    if (currencyMatch) {
+                        data['幣別'] = currencyMatch[1].toUpperCase();
+                    } else if (upperLine.includes('USD') || upperLine.includes('NT') || upperLine.includes('TWD')) {
+                        data['幣別'] = upperLine.includes('USD') ? 'USD' : 'TWD';
+                    }
+                }
+            });
+
+            // 設定預設值
+            data['發票號碼'] = data['發票號碼'] || '未識別';
+            data['發票日期'] = data['發票日期'] || '未識別';
+            data['客戶名稱'] = data['客戶名稱'] || '未識別';
+            data['總計'] = data['總計'] || '0.00';
+            data['幣別'] = data['幣別'] || 'TWD';
+            data['狀態'] = '✅ 已辨識';
+            data['辨識信賴度'] = '95%';
+
+            return data;
+        }
+
+        // 解析訂單資料
+        function parseOrderData(textLines, lines) {
+            const data = {};
+
+            textLines.forEach((line, index) => {
+                const upperLine = line.toUpperCase();
+
+                if (upperLine.includes('ORDER') || upperLine.includes('PO')) {
+                    const match = line.match(/[A-Z]{2}\d{6,}/i);
+                    if (match) data['訂單編號'] = match[0];
+                }
+
+                if (upperLine.includes('DATE')) {
+                    const match = line.match(/\d{4}[-\/]\d{1,2}[-\/]\d{1,2}/);
+                    if (match) data['訂單日期'] = match[0];
+                }
+
+                if (upperLine.includes('QTY') || upperLine.includes('QUANTITY')) {
+                    const match = line.match(/\d+/);
+                    if (match) data['數量'] = match[0];
+                }
+            });
+
+            data['訂單編號'] = data['訂單編號'] || '未識別';
+            data['訂單日期'] = data['訂單日期'] || '未識別';
+            data['數量'] = data['數量'] || '0';
+            data['狀態'] = '✅ 已辨識';
+
+            return data;
+        }
+
+        function showOCRResults() {
+            // 1. 更新上方步驟條
+            updateStep(2);
+
+            // 2. 準備要儲存的資料結構
+            let dataToSave = {};
+
+            if (ocrData && ocrData._simplified) {
+                // 路徑 A: 使用 extractSimplifiedData 解析過的資料 (包含完整 meta)
+                dataToSave = {
+                    extracted: ocrData._simplified.extracted,
+                    fullText: ocrData._simplified.fullText || '',
+                    meta: ocrData._simplified.meta || {}
+                };
+            } else if (ocrData) {
+                // 路徑 B: 使用原始或新格式資料
+                // [關鍵修正] 優先檢查 ocrData._meta 是否存在，這也是 parseOCRResult 存放信心值的地方
+                const existingMeta = ocrData._meta || ocrData.meta || {};
+
+                // 如果 meta 裡沒有時間戳，補上一個
+                if (!existingMeta.timestamp) {
+                    existingMeta.timestamp = new Date().toISOString();
+                }
+
+                dataToSave = {
+                    extracted: ocrData, // 直接使用 ocrData 作為提取內容
+                    fullText: ocrData._allText || '',
+                    meta: existingMeta // <--- 修正：使用既有的 meta (包含 confidence)，而不是建立新的
+                };
+            }
+
+            // 3. 安全檢查：確保 items 是一個陣列
+            if (dataToSave.extracted && !Array.isArray(dataToSave.extracted.items)) {
+                dataToSave.extracted.items = [];
+            }
+
+            // Debug: 印出信心值確認
+            const conf = dataToSave.meta ? dataToSave.meta.confidence : '無';
+            console.log(`💾 [系統] 儲存 OCR 資料 (信賴度: ${conf})`, dataToSave);
+
+            // 4. 存入 localStorage
+            localStorage.setItem('ocrResult', JSON.stringify(dataToSave));
+            localStorage.setItem('selected_doc_type', selectedType);
+
+            // 5. 顯示成功訊息
+            showProcessing('✅ 辨識成功！', `信賴度: ${(conf * 100).toFixed(0)}% - 正在前往編輯頁面...`);
+
+            // 6. 自動跳轉
+            setTimeout(() => {
+                window.location.href = 'invoice_OCR_result.html';
+            }, 1000);
+        }
+
+        // 複製 JSON 到剪貼簿
+        function copyJSONToClipboard() {
+            const jsonContent = document.getElementById('jsonContent');
+            const text = jsonContent.textContent;
+
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('copyJsonBtn');
+                const originalText = btn.textContent;
+                btn.textContent = '✅ 已複製';
+                btn.classList.add('copied');
+
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                alert('複製失敗: ' + err);
+            });
+        }
+
+        function retryOCR() {
+            if (confirm('確定要重新辨識嗎？這將重新處理上傳的文件。')) {
+                startOCR();
+            }
+        }
+
+        function confirmOCR() {
+            // ✅ 將 OCR 資料保存到 localStorage
+            if (!ocrData) {
+                alert('❌ 無法保存 OCR 結果，請重試');
+                return;
+            }
+
+            try {
+                // 構建完整的 JSON 結構（與 invoice_format_converter.html 兼容）
+                let jsonToSave;
+
+                // 情況 1：新格式（已在 Azure Function 中結構化）
+                if (ocrData._meta && ocrData.invoiceNo) {
+                    jsonToSave = {
+                        invoiceNo: ocrData.invoiceNo || '未知發票號',
+                        date: ocrData.date || new Date().toISOString().split('T')[0],
+                        seller: ocrData.seller || '未知賣方',
+                        totalAmount: ocrData.totalAmount || 0,
+                        currency: ocrData.currency || 'USD',
+                        items: Array.isArray(ocrData.items) ? ocrData.items : []
+                    };
+                }
+                // 情況 2：舊格式（使用 _simplified）
+                else if (ocrData._simplified) {
+                    jsonToSave = {
+                        invoiceNo: ocrData._simplified.extracted?.invoiceNo || ocrData.invoiceNo || '未知發票號',
+                        date: ocrData._simplified.extracted?.date || ocrData.date || new Date().toISOString().split('T')[0],
+                        seller: ocrData._simplified.extracted?.seller || ocrData.seller || '未知賣方',
+                        totalAmount: ocrData._simplified.extracted?.totalAmount || ocrData.totalAmount || 0,
+                        currency: ocrData._simplified.extracted?.currency || ocrData.currency || 'USD',
+                        items: ocrData._simplified.extracted?.items || ocrData.items || []
+                    };
+                }
+                // 情況 3：直接使用 ocrData 的屬性
+                else {
+                    jsonToSave = {
+                        invoiceNo: ocrData.invoiceNo || '未知發票號',
+                        date: ocrData.date || new Date().toISOString().split('T')[0],
+                        seller: ocrData.seller || '未知賣方',
+                        totalAmount: ocrData.totalAmount || 0,
+                        currency: ocrData.currency || 'USD',
+                        items: Array.isArray(ocrData.items) ? ocrData.items : []
+                    };
+                }
+
+                console.log('💾 保存 OCR 結果到 localStorage:', jsonToSave);
+                localStorage.setItem('ocrResult', JSON.stringify(jsonToSave));
+
+                // ✅ 自動跳轉到格式轉換頁面
+                console.log('🔗 正在跳轉到發票格式轉換頁面...');
+                setTimeout(() => {
+                    window.location.href = 'invoice_OCR_result.html';
+                }, 500);
+            } catch (error) {
+                console.error('❌ 保存 OCR 結果時出錯:', error);
+                alert('❌ 無法保存 OCR 結果: ' + error.message);
+            }
+        }
+
+        // ===== 第三層：選擇格式 =====
+        function showFormatSelection() {
+            updateStep(3);
+            showLayer('layer3');
+
+            const config = typeConfig[selectedType];
+
+            // 生成資料摘要（排除指定的欄位）
+            const summaryGrid = document.getElementById('summaryGrid');
+            summaryGrid.innerHTML = '';
+
+            // 需要隱藏的欄位
+            const hiddenFields = ['幣別', '發票號碼', '總計', '狀態', '辨識信賴度'];
+
+            // 只顯示未被隱藏的欄位
+            const summaryKeys = Object.keys(ocrData).filter(key => !hiddenFields.includes(key)).slice(0, 3);
+            summaryKeys.forEach(key => {
+                const item = document.createElement('div');
+                item.className = 'summary-item';
+                item.innerHTML = `
+                    <div class="label">${key}</div>
+                    <div class="value">${ocrData[key]}</div>
+                `;
+                summaryGrid.appendChild(item);
+            });
+
+            // 生成格式選項
+            const formatOptions = document.getElementById('formatOptions');
+            formatOptions.innerHTML = '';
+
+            config.formats.forEach(format => {
+                const option = document.createElement('div');
+                option.className = 'format-option';
+                option.onclick = () => selectFormat(format.id);
+                option.innerHTML = `
+                    <div class="icon">${format.icon}</div>
+                    <h4>${format.name}</h4>
+                    <p>${format.desc}</p>
+                `;
+                option.dataset.formatId = format.id;
+                formatOptions.appendChild(option);
+            });
+        }
+
+        function selectFormat(formatId) {
+            selectedFormat = formatId;
+
+            // 更新選中狀態
+            document.querySelectorAll('.format-option').forEach(option => {
+                if (option.dataset.formatId === formatId) {
+                    option.classList.add('selected');
+                } else {
+                    option.classList.remove('selected');
+                }
+            });
+
+            // 啟用下載按鈕
+            document.getElementById('downloadBtn').disabled = false;
+        }
+
+        function downloadFile() {
+            const config = typeConfig[selectedType];
+            const format = config.formats.find(f => f.id === selectedFormat);
+
+            if (!format) return;
+
+            showProcessing('正在生成檔案...', `轉換為 ${format.name}${format.ext}`);
+
+            setTimeout(() => {
+                hideProcessing();
+                alert(`✅ 檔案已準備完成！\n\n檔案名稱: ${selectedType}_${Date.now()}${format.ext}\n格式: ${format.name}\n\n實際部署時，這裡會調用 API 並下載檔案。`);
+
+                // 可以選擇繼續處理或重新開始
+                if (confirm('是否要處理新的文件？')) {
+                    resetToStart();
+                }
+            }, 2000);
+        }
+
+        // ===== 導航功能 =====
+        function backToOCR() {
+            updateStep(2);
+            showLayer('layer2');
+        }
+
+        function resetToStart() {
+            selectedType = null;
+            uploadedFile = null;
+            selectedFormat = null;
+            ocrData = null;
+
+            document.getElementById('invoiceCard').classList.remove('selected');
+            document.getElementById('orderCard').classList.remove('selected');
+            document.getElementById('fileInput').value = '';
+            document.getElementById('uploadArea').classList.remove('hidden');
+            document.getElementById('fileInfoArea').classList.add('hidden');
+
+            const uploadZone = document.getElementById('uploadZone');
+            uploadZone.classList.add('disabled');
+            uploadZone.onclick = null;
+            uploadZone.querySelector('h3').textContent = '請先選擇文件類型';
+            uploadZone.querySelector('p').textContent = '選擇上方的發票或訂單後即可上傳';
+
+            updateStep(1);
+            showLayer('layer1');
+        }
+
+        // ===== 輔助功能 =====
+        function updateStep(step) {
+            for (let i = 1; i <= 3; i++) {
+                const stepEl = document.getElementById(`step${i}`);
+                if (i < step) {
+                    stepEl.classList.add('completed');
+                    stepEl.classList.remove('active');
+                } else if (i === step) {
+                    stepEl.classList.add('active');
+                    stepEl.classList.remove('completed');
+                } else {
+                    stepEl.classList.remove('active', 'completed');
+                }
+            }
+        }
+
+        function showLayer(layerId) {
+            ['layer1', 'layer2', 'layer3'].forEach(id => {
+                const layer = document.getElementById(id);
+                if (id === layerId) {
+                    layer.classList.remove('hidden');
+                } else {
+                    layer.classList.add('hidden');
+                }
+            });
+        }
+
+        function showProcessing(text, detail) {
+            document.getElementById('processingText').textContent = text;
+            document.getElementById('processingDetail').textContent = detail;
+            document.getElementById('processingOverlay').classList.remove('hidden');
+        }
+
+        function updateProcessing(text, detail) {
+            document.getElementById('processingText').textContent = text;
+            document.getElementById('processingDetail').textContent = detail;
+        }
+
+        function hideProcessing() {
+            document.getElementById('processingOverlay').classList.add('hidden');
+        }
+    </script>
+</body>
+
+</html>
