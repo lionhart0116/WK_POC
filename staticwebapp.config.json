@@ -1,0 +1,14 @@
+{
+  "networking": {
+    "allowedIpRanges": [
+      "118.163.93.187/32",
+      "118.163.126.211/32",
+      "210.242.76.27/32"
+    ]
+  },
+  "responseOverrides": {
+    "403": {
+      "rewrite": "/403-forbidden.html"
+    }
+  }
+}
