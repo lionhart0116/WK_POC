@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -102,15 +101,8 @@
         }
 
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .result-header {
@@ -293,9 +285,7 @@
             align-items: center;
         }
 
-        .edit-btn,
-        .save-btn,
-        .cancel-btn {
+        .edit-btn, .save-btn, .cancel-btn {
             padding: 6px 12px;
             font-size: 12px;
             border: none;
@@ -523,7 +513,6 @@
         }
     </style>
 </head>
-
 <body>
     <div class="container">
         <div class="page-header">
@@ -558,7 +547,7 @@
                     </div>
                 </div>
                 <div class="confidence-badge">
-                    信賴度: 90%
+                    信賴度: 96%
                 </div>
             </div>
 
@@ -586,7 +575,7 @@
                 </div>
                 <div class="stat-item">
                     <div class="stat-value">25</div>
-                    <div class="stat-label">發票號碼</div>
+                    <div class="stat-label">發票格式</div>
                 </div>
             </div>
 
@@ -752,8 +741,8 @@
                 <div class="remarks-box">
                     <h5>總備註：</h5>
                     <p>
-                        Billing #0943731752, Cur:USD, ER:30.73802, Sales Amt:USD3,720.00,
-                        Total Amt:USD3,906.00, Payer/Sold-to/Ship-to:0000164757/0000164757/0000279167,
+                        Billing #0943731752, Cur:USD, ER:30.73802, Sales Amt:USD3,720.00, 
+                        Total Amt:USD3,906.00, Payer/Sold-to/Ship-to:0000164757/0000164757/0000279167, 
                         Ship to CY:TW
                     </p>
                 </div>
@@ -929,55 +918,45 @@
             },
             "fullText": "GAOSHENGDA TECHNOLOGY HONGKONG CO., LIMITED\nB/F BLDG 22R 3 SCIENCE PARK FAST AVENUE HONG KONG SCIENCE PARK PAK SHEK KOK SHA TIN HONG KONG\nInvoice\nBUYER:\n威健实业股份有限公司\nADD:\nTEL: (0755)82943322-345\nDATE:\n2025/11/6\n2020066251106A\n=0\n原产国:中国/No Brand\nINVOICE NO:\nTrade Term: FOB CHINA\nQuantity\nUnit Price 3.2208\nAmount(USD) 31306.18\nPO.NO 750190684\n1\n9720 PCS\nItem No. WL6WR1510\nDescription\nWLGWR1510-DAIKIN\n2 2124 PCS\nWCT2GM2511\nWCT2GM2511-TPV\n2.3461\n4983.12 750189359\n3 2676 PCS\nWCT2GM2511\nWCT2GM2511-TPV\n2.3461\n6278.16\n750190684\n4 4860 PCS\nWKCT35R2511\nWKCT35R2511-CWS\n3.0846\n14991.16 750183965\n5\n17290 PCS\nDCT2HM2611 WC16R2601\nDCT2HM2611-TPVV3 WC16R2601-TPV\n2.4556\n42457.32\n750189359\n6 7020 PCS\n1.7527\n12303.95\n17004.96\n750187810\n7 4704 PCS\nWXXTOEM2511\nWKXTOEM2511-TPVD\n3.6150\n750189359\n8 15000 PCS\nWCT29M1001H\nWCT29M1001H-Ensky\n2.5402\n38103.00\n750186432\n9\n3000 PCS\nWCT29W1001H\nWCT29M1001H-Ensky\n2.5402\n7620.60\n750186912\n10\n10000 PCS\nWCT29M1001H WCT29M1001H-Ensky\n2.5402\n25402.00\n750189361\n11\n3600 PCS\nWXT5LM2611 WXT5LM2611\n3.4376\n12375.36\n750186487\n79994 PCS\nFor and on behalf Af\nGAOSHE\nHONGKONG CO., LIMITED\nTOTAL 212825.81\nTECHNOLOGYHONGKON 高盛达科技香港\nNG COLCH\nWSOY\nPhature"
         };
-        let globalOCRData = null;
 
         // 從 localStorage 讀取 OCR 資料
         window.addEventListener('DOMContentLoaded', () => {
             const ocrData = localStorage.getItem('ocrResult');
             let data;
-
+            
             if (ocrData) {
                 try {
-                    globalOCRData = JSON.parse(ocrData);
+                    data = JSON.parse(ocrData);
                     console.log('✅ 從 localStorage 讀取資料');
-
-                    // 改進資料結構化 (若您有保留這個函式的話)
-                    if (typeof improveDataStructure === 'function') {
-                        globalOCRData = improveDataStructure(globalOCRData);
-                    }
+                    
+                    // 改進資料結構化
+                    data = improveDataStructure(data);
                 } catch (error) {
                     console.warn('❌ 解析 localStorage 資料失敗，使用模擬資料', error);
-                    globalOCRData = mockOCRData;
+                    data = mockOCRData;
                 }
             } else {
                 console.log('📌 使用模擬 OCR 資料');
-                globalOCRData = mockOCRData;
+                data = mockOCRData;
             }
-
+            
             // 新版本 JSON 格式：包含 meta 和 extracted 層級
-            const extracted = (globalOCRData && globalOCRData.extracted) ? globalOCRData.extracted : globalOCRData;
-
-            // [關鍵修改] 這裡要取出 meta 並傳給 renderOCRData，才能顯示信心分數
-            const meta = globalOCRData.meta || {};
-
-            // 呼叫渲染函式 (傳入資料本體 + 元資料)
-            renderOCRData(extracted, meta);
-
+            const extracted = data.extracted || data;
+            renderOCRData(extracted);
+            
             // ✅ 自動啟用編輯模式
             setTimeout(() => {
-                if (typeof enableEditMode === 'function') {
-                    enableEditMode();
-                }
+                enableEditMode();
             }, 100);
         });
 
         // 改進資料結構化 - 修正識別錯誤
         function improveDataStructure(data) {
             if (!data.extracted) return data;
-
+            
             const extracted = data.extracted;
             const fullText = data.fullText || '';
-
+            
             console.log('🔧 開始改進資料結構化...');
 
             // 修正發票號碼
@@ -999,32 +978,10 @@
             }
 
             // 修正賣方地址
-            const invalidAddress = !extracted.sellerAddress || 
-                                   extracted.sellerAddress.includes('Azure.AI') || 
-                                   extracted.sellerAddress.includes('AddressValue');
-
-            if (invalidAddress) {
-                console.log('🔧 偵測到無效地址，嘗試從全文重新提取...');
-                
-                // 嘗試多種正則表達式來抓取地址
-                // 1. 抓取 "Address:" 或 "地址:" 後面的內容
-                let addressMatch = fullText.match(/(?:Address|ADD|地址)[\s.:]*([^\n]+)/i);
-                
-                // 2. 如果沒抓到，嘗試抓取常見的英文地址格式 (例如包含 Road, St, Science Park)
-                if (!addressMatch) {
-                    addressMatch = fullText.match(/(\d+\s+[A-Za-z0-9\s,.]+(?:Road|Rd|Street|St|Ave|Boulevard|Blvd|Lane|Science Park|Industrial Park)[^\n]*)/i);
-                }
-
-                // 3. 如果還是沒抓到，嘗試抓取中文地址 (縣/市 + 路/街)
-                if (!addressMatch) {
-                    addressMatch = fullText.match(/(\w+[縣市]\w+[Bm鄉鎮市區]\w+[路街][^\n]+)/);
-                }
-
+            if (!extracted.sellerAddress) {
+                const addressMatch = fullText.match(/(\d+[A-Z][a-z]+\s+\d+[a-zA-Z\s,\.]*(?:Science Park|Hsinchu|Taiwan))/i);
                 if (addressMatch) {
-                    extracted.sellerAddress = (addressMatch[1] || addressMatch[0]).trim();
-                    console.log('✅ 已修復地址:', extracted.sellerAddress);
-                } else {
-                    extracted.sellerAddress = '-'; // 抓不到就留空，不要顯示亂碼
+                    extracted.sellerAddress = addressMatch[1].trim();
                 }
             }
 
@@ -1079,48 +1036,33 @@
             return data;
         }
 
-        function renderOCRData(extracted, meta) {
+        function renderOCRData(extracted) {
             console.log('🔄 開始渲染 OCR 資料:', extracted);
-
-            if (meta && meta.confidence) {
-                const badge = document.querySelector('.confidence-badge');
-                if (badge) {
-                    // 將 0.985 轉為 99%
-                    const percentage = Math.round(meta.confidence * 100);
-                    badge.textContent = `信賴度: ${percentage}%`;
-
-                    // 根據分數改變顏色 (可選)
-                    if (percentage < 80) {
-                        badge.style.backgroundColor = 'rgba(255, 152, 0, 0.2)'; // 橘色警告
-                        badge.style.color = '#f57c00';
-                    }
-                }
-            }
-
+            
             // 更新統計資料
             updateStats(extracted);
-
+            
             // 更新基本資訊
             updateBasicInfo(extracted);
-
+            
             // 更新賣方資訊
             updateSellerInfo(extracted);
-
+            
             // 更新買方資訊
             updateBuyerInfo(extracted);
-
+            
             // 更新品項明細表格
             updateItemsTable(extracted.items || []);
-
+            
             // 更新金額資訊
             updateAmountInfo(extracted);
-
+            
             // 更新備註資訊
             updateRemarksInfo(extracted);
-
+            
             // 更新檔案預覽資訊
             updateFilePreview(extracted);
-
+            
             console.log('✅ 渲染完成');
         }
 
@@ -1128,24 +1070,24 @@
             const statItems = document.querySelectorAll('.stat-item');
             const totalAmount = parseFloat(extracted.totalAmount) || 0;
             const itemCount = (extracted.items || []).length;
-
+            
             if (statItems[0]) {
                 try {
-                    statItems[0].querySelector('.stat-value').textContent =
+                    statItems[0].querySelector('.stat-value').textContent = 
                         `${extracted.currency || 'USD'} ${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                 } catch (e) {
                     statItems[0].querySelector('.stat-value').textContent = `${extracted.currency || 'USD'} ${totalAmount}`;
                 }
             }
-
+            
             if (statItems[1]) {
                 statItems[1].querySelector('.stat-value').textContent = itemCount;
             }
-
+            
             if (statItems[2]) {
                 statItems[2].querySelector('.stat-value').textContent = extracted.invoiceNo || '-';
             }
-
+            
             console.log('✅ 統計資料已更新:', { totalAmount, itemCount, invoiceNo: extracted.invoiceNo });
         }
 
@@ -1197,20 +1139,20 @@
                 console.error('找不到 itemsTableContainer');
                 return;
             }
-
+            
             // 清空原有內容
             container.innerHTML = '';
-
+            
             // 如果沒有項目，顯示提示
             if (!items || items.length === 0) {
                 container.innerHTML = '<p style="color: #999; padding: 20px; text-align: center;">未提取到品項明細</p>';
                 return;
             }
-
+            
             // 建立表格
             const table = document.createElement('table');
             table.style.cssText = 'width: 100%; border-collapse: collapse; font-size: 14px;';
-
+            
             // 表頭
             const thead = document.createElement('thead');
             thead.innerHTML = `
@@ -1226,21 +1168,21 @@
                 </tr>
             `;
             table.appendChild(thead);
-
+            
             // 表體
             const tbody = document.createElement('tbody');
             items.forEach((item, idx) => {
                 const tr = document.createElement('tr');
                 tr.style.cssText = idx % 2 === 0 ? 'background: #fafafa;' : 'background: white;';
                 tr.style.borderBottom = '1px solid #e0e0e0';
-
+                
                 // 安全地轉換數值
                 const quantity = parseInt(item.quantity) || 0;
                 const unitPrice = parseFloat(item.unitPrice) || 0;
                 const amount = parseFloat(item.amount) || 0;
-
+                
                 const missingItemNo = !item.itemNo || item.itemNo === 'null';
-
+                
                 try {
                     tr.innerHTML = `
                         <td style="padding: 12px; border-right: 1px solid #e0e0e0;">${item.lineNo || idx + 1}</td>
@@ -1261,7 +1203,7 @@
                 tbody.appendChild(tr);
             });
             table.appendChild(tbody);
-
+            
             container.appendChild(table);
             console.log('✅ 品項表格已更新，共 ' + items.length + ' 筆');
         }
@@ -1273,13 +1215,13 @@
                 return;
             }
             const items = amountSection.querySelectorAll('.data-value');
-
+            
             // 計算各項金額 - 安全轉換為數值
             const totalItems = extracted.items || [];
             const salesAmount = parseFloat(extracted.totalAmount) || 0;
             const tax = salesAmount * 0.05; // 假設稅率 5%
             const total = salesAmount + tax;
-
+            
             try {
                 if (items[0]) items[0].textContent = `${extracted.currency || 'USD'} ${salesAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                 if (items[1]) items[1].textContent = `${extracted.currency || 'USD'} ${tax.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -1302,7 +1244,7 @@
             if (remarksText) {
                 remarksText.textContent = `Origin: ${extracted.origin || '-'} | Trade Term: ${extracted.tradeTerm || '-'} | Currency: ${extracted.currency || 'USD'}`;
             }
-
+            
             const remarkItems = remarksSection.querySelectorAll('.data-grid .data-value');
             if (remarkItems[0]) remarkItems[0].textContent = extracted.invoiceNo || '-';
             if (remarkItems[1]) remarkItems[1].textContent = extracted.currency || 'USD';
@@ -1318,7 +1260,7 @@
 
         function updateFilePreview(extracted) {
             console.log('📄 更新檔案預覽，extracted:', extracted);
-
+            
             const fileNameElement = document.querySelector('.file-preview-info h4');
             if (fileNameElement) {
                 const seller = extracted.seller || 'Invoice';
@@ -1326,7 +1268,7 @@
                 fileNameElement.textContent = `${seller}_${invoiceNo}.pdf`;
                 console.log('  檔案名稱:', fileNameElement.textContent);
             }
-
+            
             const fileInfoElement = document.querySelector('.file-preview-info p');
             if (fileInfoElement) {
                 const invoiceNo = extracted.invoiceNo || 'N/A';
@@ -1342,7 +1284,7 @@
         function toggleNewRowForm() {
             const form = document.getElementById('newRowForm');
             form.classList.toggle('show');
-
+            
             if (form.classList.contains('show')) {
                 document.getElementById('newLine').focus();
             }
@@ -1367,7 +1309,7 @@
             // 找到表格並插入新行
             const container = document.getElementById('itemsTableContainer');
             const table = container.querySelector('table');
-
+            
             if (!table) {
                 alert('找不到表格');
                 return;
@@ -1402,11 +1344,11 @@
             tbody.appendChild(newRow);
 
             console.log(`✅ 新增品項: Line ${line} - ${description}`);
-
+            
             // 重置表單
             document.getElementById('newRowForm').reset();
             toggleNewRowForm();
-
+            
             alert(`✅ 已新增品項\n\n行號: ${line}\n品號: ${itemNo}\n說明: ${description}`);
         }
 
@@ -1415,7 +1357,7 @@
 
         function enableEditMode() {
             console.log('📝 啟用編輯模式 - 所有欄位可直接編輯');
-
+            
             // 啟用所有 data-value 的編輯
             const dataValues = document.querySelectorAll('.data-value');
             dataValues.forEach(elem => {
@@ -1478,7 +1420,7 @@
             elem.appendChild(input);
             elem.appendChild(saveBtn);
             elem.appendChild(cancelBtn);
-
+            
             input.focus();
             input.select();
         }
@@ -1524,69 +1466,22 @@
             cell.appendChild(input);
             cell.appendChild(saveBtn);
             cell.appendChild(cancelBtn);
-
+            
             input.focus();
             input.select();
         }
 
         function saveAndContinue() {
             console.log('💾 保存編輯並繼續');
-
-
-            // ==========================================
-            // 1. 統計並提示修改內容 (您要求整合的部分)
-            // ==========================================
-            // 確保 editedData 存在 (這是您在 global 定義的 Map)
-            if (typeof editedData !== 'undefined' && editedData.size > 0) {
-                // 收集編輯紀錄
-                const edits = Array.from(editedData.entries()).map(([elem, value]) => ({
-                    // 注意：因為 DOM 已經更新，textContent 就是新值
-                    element_text: elem.textContent,
-                    newValue: value
-                }));
-
-                console.log('📊 編輯內容明細:', edits);
-
-                // 彈出提示 (這會暫停程式，直到使用者按「確定」)
-                alert(`✅ 已保存 ${editedData.size} 項編輯\n\n編輯內容已記錄，準備繼續下一步`);
-            } else {
-                // 如果完全沒修改，也可以給個簡單提示（可選）
-                // alert('✅ 資料確認無誤，前往選擇匯出格式...');
-            }
-
-            // ==========================================
-            // 2. 準備資料與跳轉 (之前的邏輯)
-            // ==========================================
-
-            // A. 抓取目前的資料來源
-            let sourceData = {};
-            if (typeof globalOCRData !== 'undefined' && globalOCRData) {
-                sourceData = globalOCRData.extracted || globalOCRData;
-            }
-
-            // B. 轉換為下一頁 (invoice_output_format.html) 需要的格式
-            // 這裡將資料標準化為 Snake Case
-            let currentDataToPass = {
-                invoice_no: sourceData.invoiceNo || 'TBD',
-                invoice_date: sourceData.date || '',
-                seller_id: sourceData.seller || '',
-                seller_name: sourceData.seller || '',
-                buyer_name: sourceData.buyer || '',
-                buyer_address: sourceData.buyerAddress || '',
-                grand_total: sourceData.totalAmount || 0,
-                currency: sourceData.currency || 'USD',
-                items: sourceData.items || []
-            };
-
-            // C. 存入 localStorage (關鍵：Key 必須是 'shared_ocr_data')
-            localStorage.setItem('shared_ocr_data', JSON.stringify(currentDataToPass));
-
-            console.log('✅ 資料已轉換並儲存，準備跳轉...');
-
-            // ==========================================
-            // 3. 執行跳轉
-            // ==========================================
-            window.location.href = 'invoice_output_format.html';
+            
+            // 收集所有編輯過的資料
+            const edits = Array.from(editedData.entries()).map(([elem, value]) => ({
+                element: elem.textContent,
+                newValue: value
+            }));
+            
+            console.log('📊 編輯內容:', edits);
+            alert(`✅ 已保存 ${editedData.size} 項編輯\n\n編輯內容已記錄，準備繼續下一步`);
         }
 
         // ===== 舊的切換函數（保留以防需要） =====
@@ -1601,5 +1496,4 @@
         }
     </script>
 </body>
-
 </html>

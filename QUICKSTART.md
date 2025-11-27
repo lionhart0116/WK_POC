@@ -4,14 +4,14 @@
 
 ### 終端 1: 啟動後端
 ```bash
-cd /Users/2200370/WK_OCR/
+cd /Users/chentungching/Documents/精誠軟體服務/威健/CODE
 func host start
 ```
 ✅ 看到 `Listening on http://localhost:7071`
 
 ### 終端 2: 啟動前端伺服器
 ```bash
-cd /Users/2200370/WK_OCR/
+cd /Users/chentungching/Documents/精誠軟體服務/威健/CODE
 python3 local_server.py
 ```
 ✅ 看到 `🚀 HTTP 伺服器已啟動: http://localhost:8000`

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>測試採購單號提取</title>
+</head>
+<body>
+    <h1>測試採購單號提取</h1>
+    <div id="result"></div>
+
+    <script>
+        // 測試數據
+        const testContent = "採購單號:20221110005";
+        const testLine = "採購單號:20221110005";
+
+        let poNo = '';
+
+        // 方法 1: 直接提取
+        console.log('測試內容:', testContent);
+        const idx = testContent.indexOf('採購單號');
+        if (idx >= 0) {
+            const afterLabel = testContent.substring(idx + 4);
+            console.log('採購單號後的內容:', afterLabel);
+            const numMatch = afterLabel.match(/\d+/);
+            console.log('數字匹配結果:', numMatch);
+            if (numMatch) {
+                poNo = numMatch[0];
+                console.log('✅ 方法1成功:', poNo);
+            }
+        }
+
+        // 方法 2: 正則表達式
+        if (!poNo) {
+            let match = testContent.match(/採購單號[\s：:]*(\d+)/);
+            console.log('正則1匹配結果:', match);
+            if (match && match[1]) {
+                poNo = match[1];
+                console.log('✅ 方法2成功:', poNo);
+            }
+        }
+
+        // 顯示結果
+        document.getElementById('result').innerHTML = `
+            <h2>測試結果</h2>
+            <p><strong>測試內容:</strong> ${testContent}</p>
+            <p><strong>提取結果:</strong> ${poNo || '失敗'}</p>
+            <p><strong>詳細請查看控制台</strong></p>
+        `;
+
+        // 測試完整的 JSON
+        const testJson = {
+            "status": "succeeded",
+            "pages": [
+                {
+                    "pageNumber": 1,
+                    "lines": [
+                        {"text": "誠欽科技股份有限公司"},
+                        {"text": "採購單號:20221110005"}
+                    ]
+                }
+            ],
+            "tables": [
+                {
+                    "cells": [
+                        {
+                            "rowIndex": 1,
+                            "columnIndex": 0,
+                            "content": "採購單號:20221110005"
+                        }
+                    ]
+                }
+            ]
+        };
+
+        console.log('\n=== 測試完整 JSON ===');
+        const lines = testJson.pages[0].lines.map(line => line.text.trim());
+        console.log('Lines:', lines);
+
+        let poNo2 = '';
+        for (let i = 0; i < lines.length; i++) {
+            if (lines[i] && lines[i].includes('採購單號')) {
+                console.log('找到採購單號行（第' + i + '行）：[' + lines[i] + ']');
+                const idx2 = lines[i].indexOf('採購單號');
+                if (idx2 >= 0) {
+                    const afterLabel2 = lines[i].substring(idx2 + 4);
+                    console.log('採購單號後的內容：[' + afterLabel2 + ']');
+                    const numMatch2 = afterLabel2.match(/\d+/);
+                    console.log('數字匹配結果：', numMatch2);
+                    if (numMatch2) {
+                        poNo2 = numMatch2[0];
+                        console.log('✅ 從 lines 提取成功：[' + poNo2 + ']');
+                        break;
+                    }
+                }
+            }
+        }
+
+        console.log('\n=== 最終結果 ===');
+        console.log('採購單號:', poNo2 || '未提取到');
+    </script>
+</body>
+</html>

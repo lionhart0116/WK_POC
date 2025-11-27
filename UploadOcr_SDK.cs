@@ -90,10 +90,11 @@ public class UploadOcrSDK
             // Analyze document
             var analyzeContent = BinaryData.FromBytes(memoryStream.ToArray());
 
-            _logger.LogInformation("Calling Document Intelligence API with prebuilt-read model");
+            _logger.LogInformation("Calling Document Intelligence API with prebuilt-invoice model");
+
             var operation = await client.AnalyzeDocumentAsync(
-                WaitUntil.Completed, 
-                "prebuilt-read", 
+                WaitUntil.Completed,
+                "prebuilt-invoice",
                 analyzeContent);
 
             if (!operation.HasValue)
@@ -194,17 +195,22 @@ public class UploadOcrSDK
             analyzeResult.Pages?.SelectMany(p => p.Lines ?? Enumerable.Empty<DocumentLine>())
                 .Select(l => l.Content) ?? Enumerable.Empty<string>());
 
-        var extracted = ExtractInvoiceFields(analyzeResult, fullText);
+        // 優先使用 prebuilt-invoice 模型提取的結構化欄位
+        var extracted = ExtractInvoiceFieldsFromModel(analyzeResult, fullText);
+
+        // 計算整體信賴度
+        var confidence = CalculateOverallConfidence(analyzeResult);
 
         return new
         {
             meta = new
             {
                 apiVersion = "2024-02-29-preview",
-                model = "prebuilt-read",
+                model = "prebuilt-invoice",
                 pageCount = analyzeResult.Pages?.Count ?? 0,
                 timestamp = DateTime.UtcNow.ToString("O"),
-                fileName = fileName
+                fileName = fileName,
+                confidence = confidence
             },
             extracted = extracted,
             fullText = fullText,
@@ -213,30 +219,318 @@ public class UploadOcrSDK
     }
 
     /// <summary>
-    /// Extract invoice fields from analyze result
+    /// Calculate overall confidence score from the analysis result
     /// </summary>
-    private Dictionary<string, object?> ExtractInvoiceFields(AnalyzeResult analyzeResult, string fullText)
+    private object CalculateOverallConfidence(AnalyzeResult analyzeResult)
+    {
+        var confidenceInfo = new Dictionary<string, object>();
+        
+        // 文件層級信賴度
+        if (analyzeResult.Documents != null && analyzeResult.Documents.Count > 0)
+        {
+            var doc = analyzeResult.Documents[0];
+            confidenceInfo["document"] = Math.Round(doc.Confidence * 100, 2);
+            
+            // 欄位層級信賴度
+            if (doc.Fields != null)
+            {
+                var fieldConfidences = new Dictionary<string, double>();
+                foreach (var field in doc.Fields)
+                {
+                    if (field.Value.Confidence.HasValue)
+                    {
+                        fieldConfidences[field.Key] = Math.Round(field.Value.Confidence.Value * 100, 2);
+                    }
+                }
+                if (fieldConfidences.Count > 0)
+                {
+                    confidenceInfo["fields"] = fieldConfidences;
+                    confidenceInfo["averageFieldConfidence"] = Math.Round(fieldConfidences.Values.Average(), 2);
+                }
+            }
+        }
+
+        // 頁面層級平均信賴度（基於文字行）
+        if (analyzeResult.Pages != null)
+        {
+            var pageConfidences = new List<double>();
+            foreach (var page in analyzeResult.Pages)
+            {
+                if (page.Words != null && page.Words.Count > 0)
+                {
+                    var avgWordConfidence = page.Words.Average(w => w.Confidence);
+                    pageConfidences.Add(Math.Round(avgWordConfidence * 100, 2));
+                }
+            }
+            if (pageConfidences.Count > 0)
+            {
+                confidenceInfo["pages"] = pageConfidences;
+                confidenceInfo["averagePageConfidence"] = Math.Round(pageConfidences.Average(), 2);
+            }
+        }
+
+        // 計算整體信賴度（優先使用文件信賴度，其次是平均欄位信賴度）
+        if (confidenceInfo.ContainsKey("document"))
+        {
+            confidenceInfo["overall"] = confidenceInfo["document"];
+        }
+        else if (confidenceInfo.ContainsKey("averageFieldConfidence"))
+        {
+            confidenceInfo["overall"] = confidenceInfo["averageFieldConfidence"];
+        }
+        else if (confidenceInfo.ContainsKey("averagePageConfidence"))
+        {
+            confidenceInfo["overall"] = confidenceInfo["averagePageConfidence"];
+        }
+        else
+        {
+            confidenceInfo["overall"] = 0;
+        }
+
+        return confidenceInfo;
+    }
+
+    /// <summary>
+    /// Extract invoice fields from prebuilt-invoice model result
+    /// </summary>
+    private Dictionary<string, object?> ExtractInvoiceFieldsFromModel(AnalyzeResult analyzeResult, string fullText)
     {
         var fields = new Dictionary<string, object?>();
 
-        // Extract basic fields
-        fields["invoiceNo"] = ExtractInvoiceNumber(fullText);
-        fields["date"] = ExtractDate(fullText);
-        fields["seller"] = ExtractSeller(fullText, analyzeResult);
-        fields["sellerAddress"] = ExtractSellerAddress(fullText);
+        // 檢測文件類型（採購單 vs 發票）
+        bool isPurchaseOrder = fullText.Contains("採購單號") || fullText.Contains("Purchase Order") || fullText.Contains("P.O.");
+
+        // 從 prebuilt-invoice 模型的 Documents 提取結構化欄位
+        if (analyzeResult.Documents != null && analyzeResult.Documents.Count > 0)
+        {
+            var invoice = analyzeResult.Documents[0];
+            var docFields = invoice.Fields;
+
+            if (docFields != null)
+            {
+                // 發票號碼
+                fields["invoiceNo"] = GetFieldValue(docFields, "InvoiceId");
+
+                // 日期
+                fields["date"] = GetFieldValue(docFields, "InvoiceDate") ?? GetFieldValue(docFields, "DueDate");
+
+                // 採購單的角色與發票相反
+                if (isPurchaseOrder)
+                {
+                    // 採購單：VendorName = 供應商(seller), CustomerName = 買方(buyer)
+                    fields["seller"] = GetFieldValue(docFields, "VendorName");
+                    fields["sellerAddress"] = GetFieldValue(docFields, "VendorAddress");
+                    fields["sellerTaxId"] = GetFieldValue(docFields, "VendorTaxId");
+
+                    fields["buyer"] = GetFieldValue(docFields, "CustomerName");
+                    fields["buyerAddress"] = GetFieldValue(docFields, "CustomerAddress");
+                    fields["buyerTaxId"] = GetFieldValue(docFields, "CustomerTaxId");
+                }
+                else
+                {
+                    // 發票：VendorName = 開票方(seller), CustomerName = 收票方(buyer)
+                    fields["seller"] = GetFieldValue(docFields, "VendorName");
+                    fields["sellerAddress"] = GetFieldValue(docFields, "VendorAddress");
+                    fields["sellerTaxId"] = GetFieldValue(docFields, "VendorTaxId");
+
+                    fields["buyer"] = GetFieldValue(docFields, "CustomerName");
+                    fields["buyerAddress"] = GetFieldValue(docFields, "CustomerAddress");
+                    fields["buyerTaxId"] = GetFieldValue(docFields, "CustomerTaxId");
+                }
+                
+                // 金額資訊
+                fields["subTotal"] = GetFieldValue(docFields, "SubTotal");
+                fields["totalTax"] = GetFieldValue(docFields, "TotalTax");
+                fields["totalAmount"] = GetFieldValue(docFields, "InvoiceTotal") ?? GetFieldValue(docFields, "AmountDue");
+                
+                // 幣別
+                fields["currency"] = GetFieldValue(docFields, "CurrencyCode") ?? ExtractCurrency(fullText);
+                
+                // 付款條款
+                fields["paymentTerm"] = GetFieldValue(docFields, "PaymentTerm");
+                
+                // PO 編號
+                fields["purchaseOrder"] = GetFieldValue(docFields, "PurchaseOrder");
+                
+                // 提取品項
+                fields["items"] = ExtractItemsFromModel(docFields);
+            }
+        }
+
+        // 如果 prebuilt-invoice 沒有提取到某些欄位，使用 fallback 方法
+        if (fields["invoiceNo"] == null) fields["invoiceNo"] = ExtractInvoiceNumber(fullText);
+        if (fields["purchaseOrder"] == null) fields["purchaseOrder"] = ExtractPurchaseOrderNumber(fullText);
+        if (fields["date"] == null) fields["date"] = ExtractDate(fullText);
+        if (fields["seller"] == null) fields["seller"] = ExtractSeller(fullText, analyzeResult);
+        if (fields["buyer"] == null) fields["buyer"] = ExtractBuyer(fullText);
+        if (fields["totalAmount"] == null) fields["totalAmount"] = ExtractTotalAmount(fullText);
+        
+        // 額外欄位（prebuilt-invoice 可能沒有的）
         fields["contact"] = ExtractContact(fullText);
-        fields["buyer"] = ExtractBuyer(fullText);
-        fields["buyerAddress"] = ExtractBuyerAddress(fullText);
         fields["tradeTerm"] = ExtractTradeTerm(fullText);
         fields["origin"] = ExtractOrigin(fullText);
-        fields["currency"] = ExtractCurrency(fullText);
-        fields["totalAmount"] = ExtractTotalAmount(fullText);
-        
-        // Extract items from tables
-        fields["items"] = ExtractItems(analyzeResult, fullText);
         fields["remarks"] = ExtractRemarks(fullText);
 
+        // 如果沒有從模型提取到品項，使用 fallback 方法
+        if (fields["items"] == null || (fields["items"] is List<Dictionary<string, object?>> list && list.Count == 0))
+        {
+            fields["items"] = ExtractItems(analyzeResult, fullText);
+        }
+
+        // ✅ 將 purchaseOrder 拆分並分配給各個 item
+        AssignPurchaseOrdersToItems(fields);
+
         return fields;
+    }
+
+    /// <summary>
+    /// 將發票層級的 purchaseOrder（多個用換行分隔）拆分並分配給各個 item
+    /// </summary>
+    private void AssignPurchaseOrdersToItems(Dictionary<string, object?> fields)
+    {
+        // 獲取 purchaseOrder 字串
+        var purchaseOrderStr = fields["purchaseOrder"]?.ToString();
+        if (string.IsNullOrEmpty(purchaseOrderStr))
+            return;
+
+        // 獲取 items
+        if (fields["items"] is not List<Dictionary<string, object?>> items || items.Count == 0)
+            return;
+
+        // 拆分 purchaseOrder（支援換行符和逗號分隔）
+        var poList = purchaseOrderStr
+            .Split(new[] { '\n', '\r', ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(po => po.Trim())
+            .Where(po => !string.IsNullOrEmpty(po))
+            .ToList();
+
+        _logger.LogInformation($"📋 解析 PurchaseOrder: 共 {poList.Count} 個 PO, {items.Count} 個 items");
+
+        // 如果只有一個 PO，分配給所有 item
+        if (poList.Count == 1)
+        {
+            foreach (var item in items)
+            {
+                item["customerPO"] = poList[0];
+            }
+            _logger.LogInformation($"✅ 單一 PO '{poList[0]}' 已分配給所有 {items.Count} 個 items");
+        }
+        // 如果 PO 數量與 item 數量相同，一對一分配
+        else if (poList.Count == items.Count)
+        {
+            for (int i = 0; i < items.Count; i++)
+            {
+                items[i]["customerPO"] = poList[i];
+            }
+            _logger.LogInformation($"✅ {poList.Count} 個 PO 已一對一分配給 {items.Count} 個 items");
+        }
+        // 如果 PO 數量與 item 數量不同，盡量分配
+        else
+        {
+            for (int i = 0; i < items.Count; i++)
+            {
+                // 循環使用 PO，或者只用有的
+                items[i]["customerPO"] = i < poList.Count ? poList[i] : poList.LastOrDefault();
+            }
+            _logger.LogWarning($"⚠️ PO 數量 ({poList.Count}) 與 item 數量 ({items.Count}) 不匹配，已盡量分配");
+        }
+
+        // 清除發票層級的 purchaseOrder（因為已經分配到各個 item）
+        fields["purchaseOrder"] = null;
+    }
+
+    /// <summary>
+    /// Get field value from document fields
+    /// </summary>
+    private object? GetFieldValue(IReadOnlyDictionary<string, DocumentField> fields, string fieldName)
+    {
+        if (!fields.TryGetValue(fieldName, out var field))
+            return null;
+
+        // 使用 if-else 而非 switch，因為 DocumentFieldType 是 struct
+        if (field.FieldType == DocumentFieldType.String)
+            return field.ValueString;
+        if (field.FieldType == DocumentFieldType.Date)
+            return field.ValueDate?.ToString("yyyy-MM-dd");
+        if (field.FieldType == DocumentFieldType.Time)
+            return field.ValueTime?.ToString();
+        if (field.FieldType == DocumentFieldType.PhoneNumber)
+            return field.ValuePhoneNumber;
+        if (field.FieldType == DocumentFieldType.Double)
+            return field.ValueDouble;
+        if (field.FieldType == DocumentFieldType.Int64)
+            return field.ValueInt64;
+        if (field.FieldType == DocumentFieldType.Currency)
+            return field.ValueCurrency?.Amount;
+        if (field.FieldType == DocumentFieldType.Address)
+            return field.Content; // 使用 Content 而不是 ToString()，避免返回類型名稱
+        if (field.FieldType == DocumentFieldType.CountryRegion)
+            return field.ValueCountryRegion;
+        
+        return field.Content;
+    }
+
+    /// <summary>
+    /// Extract items from prebuilt-invoice model
+    /// </summary>
+    private List<Dictionary<string, object?>> ExtractItemsFromModel(IReadOnlyDictionary<string, DocumentField> docFields)
+    {
+        var items = new List<Dictionary<string, object?>>();
+
+        if (!docFields.TryGetValue("Items", out var itemsField))
+            return items;
+
+        if (itemsField.FieldType != DocumentFieldType.List || itemsField.ValueList == null)
+            return items;
+
+        var lineNo = 1;
+        foreach (var itemField in itemsField.ValueList)
+        {
+            if (itemField.FieldType != DocumentFieldType.Dictionary || itemField.ValueDictionary == null)
+                continue;
+
+            var itemDict = itemField.ValueDictionary;
+            var item = new Dictionary<string, object?>
+            {
+                ["lineNo"] = lineNo++
+            };
+
+            // 品項描述
+            if (itemDict.TryGetValue("Description", out var desc))
+                item["description"] = desc.Content ?? desc.ValueString;
+
+            // 品項編號/產品代碼
+            if (itemDict.TryGetValue("ProductCode", out var code))
+                item["itemNo"] = code.Content ?? code.ValueString;
+
+            // 數量
+            if (itemDict.TryGetValue("Quantity", out var qty))
+                item["quantity"] = qty.ValueDouble ?? (double?)qty.ValueInt64;
+
+            // 單位
+            if (itemDict.TryGetValue("Unit", out var unit))
+                item["unit"] = unit.Content ?? unit.ValueString;
+
+            // 單價
+            if (itemDict.TryGetValue("UnitPrice", out var unitPrice))
+                item["unitPrice"] = unitPrice.ValueCurrency?.Amount ?? unitPrice.ValueDouble;
+
+            // 金額
+            if (itemDict.TryGetValue("Amount", out var amount))
+                item["amount"] = amount.ValueCurrency?.Amount ?? amount.ValueDouble;
+
+            // 稅額
+            if (itemDict.TryGetValue("Tax", out var tax))
+                item["tax"] = tax.ValueCurrency?.Amount ?? tax.ValueDouble;
+
+            // 日期
+            if (itemDict.TryGetValue("Date", out var date))
+                item["date"] = date.ValueDate?.ToString("yyyy-MM-dd");
+
+            items.Add(item);
+        }
+
+        return items;
     }
 
     #region Field Extraction Methods
@@ -248,8 +542,24 @@ public class UploadOcrSDK
         if (match.Success) return match.Groups[1].Value;
 
         // Pattern 2: Invoice No: XXX
-        match = System.Text.RegularExpressions.Regex.Match(fullText, 
-            @"(?:Invoice\s*No|INV\s*No|INVOICE#)[\s:]*([A-Z0-9\-]+)", 
+        match = System.Text.RegularExpressions.Regex.Match(fullText,
+            @"(?:Invoice\s*No|INV\s*No|INVOICE#)[\s:]*([A-Z0-9\-]+)",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (match.Success) return match.Groups[1].Value.Trim();
+
+        return null;
+    }
+
+    private string? ExtractPurchaseOrderNumber(string fullText)
+    {
+        // Pattern 1: 採購單號: YYYYMMDDXXX (台灣格式)
+        var match = System.Text.RegularExpressions.Regex.Match(fullText,
+            @"採購單號[\s：:]*(\d{8,15})");
+        if (match.Success) return match.Groups[1].Value.Trim();
+
+        // Pattern 2: PO No: XXX or P.O. No: XXX
+        match = System.Text.RegularExpressions.Regex.Match(fullText,
+            @"(?:P\.?O\.?\s*No|Purchase\s*Order\s*No)[\s:]*([A-Z0-9\-]+)",
             System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         if (match.Success) return match.Groups[1].Value.Trim();
 
